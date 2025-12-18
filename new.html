@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<link rel="stylesheet" href="stylesheet.css">
+
+
+
+<script src="scripts.js"></script>
+
+
+<script>
+
+let log = false;
+let user = 'x';
+let pass = 'x';
+
+
+</script>
+</head>
+<body>
+
+
+
+<h2>Demo JavaScript in Head</h2>
+
+<h2>Login Form</h2>
+<form id="loginForm" onsubmit="event.preventDefault(); validateLogin();">
+  <label for="username">Username:</label>
+  <input type="text" id="username" name="username"><br><br>
+  <label for="password">Password:</label>
+  <input type="password" id="password" name="password"><br><br>
+  <input type="submit" value="Login">
+</form>
+
+<div id="iframeContainer" style="display:none;">
+  <iframe src="https://slowroads.io" width="600" height="400"></iframe>
+</div>
+
+<button type="button" id="toggleButton" style="display:none;" onclick="toggleSlowIframe()">Toggle Iframe</button>
+
+
+
+
+<p id="demo">A Paragraph.</p>
+
+<p id="testing"> external function test </p>
+<button type="button" onclick="change()">testingFunction</button>
+
+
+
+<br>
+<br>
+<br>
+<br>
+
+<button type="button" onclick="ualert()">Display udata</button>
+<br>
+<br>
+<br> 
+<iframe frameborder="0" src="https://itch.io/embed/2636688?bg_color=929292" width="552" height="167"><a href="https://craconthego.itch.io/insect-mayhem">Insect Mayhem by CracOnTheGo</a></iframe>
+
+
+</body>
+</html>

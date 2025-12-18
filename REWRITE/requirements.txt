@@ -1,0 +1,7 @@
+multitasking==0.0.11
+yfinance
+pandas
+matplotlib
+scikit-learn
+numpy
+# do NOT include tensorflow when using tensorflow/tensorflow:*-gpu base image
