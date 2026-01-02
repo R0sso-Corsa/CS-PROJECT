@@ -14,8 +14,9 @@ import datetime as dt
 from sklearn.preprocessing import MinMaxScaler           # scale values to 0-1 for NN
 from tensorflow.keras.models import Sequential           # import TensorFlow Keras API
 from tensorflow.keras.layers import Dense, LSTM, Dropout # import TensorFlow Keras API
-from tensorflow.keras.callbacks import TensorBoard, Callback                # TensorBoard callback for visualization
+from tensorflow.keras.callbacks import TensorBoard, Callback, EarlyStopping                # TensorBoard callback for visualization
 from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.multioutput import MultiOutputRegressor
 import os                                                # filesystem operations (saving files, cwd)
 
 # create a reusable figure/axis early so other code can add to it later
@@ -47,6 +48,9 @@ train_returns = train_log.diff().dropna().values.reshape(-1, 1)
 scaler = MinMaxScaler(feature_range=(0, 1))
 scaled_returns = scaler.fit_transform(train_returns)
 
+# multi-step horizon (days) for direct forecasting
+HORIZON = future_day
+
 # how many past days to use as input for each prediction (sliding window length)
 prediction_days = 365 # 60 default
 future_day = 365     # NUMBER OF DAYS TO PREDICT INTO THE FUTURE (used for the forward recursive forecast)
@@ -59,13 +63,25 @@ x_train, y_train = [], []
 
 # build input (x) and target (y) sliding windows for training using returns
 # ensure target index exists in the returns array
-for i in range(prediction_days, len(scaled_returns) - train_horizon + 1):
+for i in range(prediction_days, len(scaled_returns) - HORIZON + 1):
     x_train.append(scaled_returns[i-prediction_days:i, 0])
-    y_train.append(scaled_returns[i + train_horizon - 1, 0])
+    # target is the next HORIZON returns starting at i
+    y_train.append(scaled_returns[i:i+HORIZON, 0])
 
 # convert to NumPy arrays and reshape to (samples, timesteps, features)
-x_train, y_train = np.array(x_train), np.array(y_train)
+x_train, y_train = np.array(x_train), np.array(y_train)  # y_train shape -> (n_samples, HORIZON)
 x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+
+# Create a time-ordered validation split to avoid leakage (walk-forward style)
+val_size = max(1, int(0.1 * x_train.shape[0]))  # 10% for validation, at least 1 sample
+x_val = x_train[-val_size:]
+y_val = y_train[-val_size:]
+# keep the earlier portion for training
+x_train = x_train[:-val_size]
+y_train = y_train[:-val_size]
+
+# Early stopping callback to prevent overfitting (restores best weights)
+early_stop = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
 
 # Add this function near the top of your file, after imports:
 def get_dynamic_dropout(epoch, total_epochs, initial_rate=0.5, final_rate=0.1):
@@ -109,7 +125,7 @@ ai.add(Dropout(initial_dropout))
 ai.add(LSTM(units=100))
 ai.add(Dropout(initial_dropout))
 
-ai.add(Dense(units=1))
+ai.add(Dense(units=HORIZON))
 
 # Add the dynamic dropout callback to your training
 dynamic_dropout = DynamicDropoutCallback(epochs, initial_dropout, final_dropout)
@@ -138,19 +154,21 @@ ai.compile(optimizer='adam', loss='mean_absolute_error')
 
 # Modify your model.fit call to include the new callback:
 ai.fit(x_train, y_train,
-       epochs=epochs,
-       batch_size=batchSize,
-       callbacks=[tensorboard_callback, dynamic_dropout],
-       verbose=1)
+    epochs=epochs,
+    batch_size=batchSize,
+    validation_data=(x_val, y_val),
+    callbacks=[tensorboard_callback, dynamic_dropout, early_stop],
+    verbose=1)
 
 # Train a residual model (gradient boosting) on flattened windows to recover sharper local moves
 try:
     x_train_flat = x_train.reshape(x_train.shape[0], -1)
-    pred_train_scaled = ai.predict(x_train)
-    residuals = y_train - pred_train_scaled.flatten()
-    gbr_res = GradientBoostingRegressor(n_estimators=200, max_depth=4, random_state=42)
+    pred_train_scaled = ai.predict(x_train)  # shape (n_samples, HORIZON)
+    residuals = y_train - pred_train_scaled  # shape (n_samples, HORIZON)
+    gbr_base = GradientBoostingRegressor(n_estimators=200, max_depth=4, random_state=42)
+    gbr_res = MultiOutputRegressor(gbr_base)
     gbr_res.fit(x_train_flat, residuals)
-    print("Trained residual GradientBoostingRegressor to sharpen forecasts.")
+    print("Trained multi-output residual GradientBoostingRegressor to sharpen forecasts.")
 except Exception as e:
     print("Residual model training failed:", e)
 
@@ -185,31 +203,26 @@ for x in range(prediction_days, len(ai_inputs)):
 x_test = np.array(x_test)
 x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
 
-# run the ai to get normalized predictions and apply residual corrections if available
-prediction_prices_scaled = ai.predict(x_test)
+# run the ai to get normalized multi-step predictions and apply residual corrections if available
+pred_all_scaled = ai.predict(x_test)  # shape (n_test_samples, HORIZON)
 try:
-    # apply residual corrections learned by GradientBoosting (if trained)
     x_test_flat = x_test.reshape(x_test.shape[0], -1)
-    corrections = gbr_res.predict(x_test_flat).reshape(-1, 1)
-    prediction_prices_scaled = prediction_prices_scaled + corrections
+    corrections = gbr_res.predict(x_test_flat)  # shape (n_test_samples, HORIZON)
+    pred_all_scaled = pred_all_scaled + corrections
 except Exception:
     pass
-# inverse-transform predicted returns and reconstruct price series starting from last train price
-pred_returns = scaler.inverse_transform(prediction_prices_scaled)
-start_price = float(train_series.values[-1])
-pred_prices = []
-price = start_price
-for r in pred_returns.flatten():
-    price = price * np.exp(r)
-    pred_prices.append(price)
-prediction_prices = np.array(pred_prices).reshape(-1, 1)
+
+# For test-period plotting/evaluation use the 1-day ahead predictions (first column)
+pred_first_scaled = pred_all_scaled[:, 0].reshape(-1, 1)
+pred_first_returns = scaler.inverse_transform(pred_first_scaled).flatten()
+# approximate predicted prices for test: previous actual price * exp(predicted_return)
+prediction_prices = (actual_prices * np.exp(pred_first_returns)).reshape(-1, 1)
 
 # capture test period dates to align plot x-axis (keep actual test dates)
 prediction_dates = test_data.index
 
-# create prediction dates aligned to the reconstruction start (day after last train date)
-train_last_date = train_series.index[-1]
-prediction_dates_offset = pandas.date_range(start=train_last_date + pandas.Timedelta(days=1), periods=len(prediction_prices))
+# create one-day offset for predicted points so plotted predictions appear one day ahead
+prediction_dates_offset = prediction_dates + pandas.Timedelta(days=1)
 
 # extract last actual and predicted scalar values for reporting
 last_actual_value = actual_prices[-1]
@@ -244,42 +257,21 @@ print(f"\n{'='*60}")
 print(f"PREDICTING NEXT {future_day} DAYS...")
 print(f"{'='*60}\n")
 
-# Get the last prediction_days of scaled data to start the rolling forecast
-real_data = ai_inputs[-prediction_days:, 0].copy()
 
-# Store future predictions
-future_predictions = []
+# Direct multi-step forecast from the last available input using the trained model
+last_input = ai_inputs[-prediction_days:].reshape(1, prediction_days, 1)
+last_pred_scaled = ai.predict(last_input)[0]  # shape (HORIZON,)
+try:
+    last_pred_scaled = last_pred_scaled + gbr_res.predict(last_input.reshape(1, -1))[0]
+except Exception:
+    pass
 
-# Rolling forecast: predict one day at a time, apply residual correction each step
-for day in range(future_day):
-    input_sequence = real_data[-prediction_days:].reshape(1, prediction_days, 1)
-
-    # LSTM one-step prediction (scaled)
-    next_pred_scaled = ai.predict(input_sequence, verbose=0)[0, 0]
-
-    # residual correction from gradient booster (flattened input)
-    try:
-        input_flat = input_sequence.reshape(1, -1)
-        res_corr = float(gbr_res.predict(input_flat)[0])
-    except Exception:
-        res_corr = 0.0
-
-    corrected = next_pred_scaled + res_corr
-    future_predictions.append(corrected)
-
-    # Append corrected prediction to inputs for next step (keeps aggressiveness)
-    real_data = np.append(real_data, corrected)
-
-    if (day + 1) % 10 == 0:
-        print(f"Predicted day {day + 1}/{future_day}")
-
-# Convert future predicted returns back to price scale by reconstructing from last known price
-future_predictions = np.array(future_predictions).reshape(-1, 1)
-future_returns = scaler.inverse_transform(future_predictions)
+# inverse-transform returns and reconstruct price trajectory
+pred_returns = scaler.inverse_transform(last_pred_scaled.reshape(-1, 1)).flatten()
 last_price = float(data['Close'].values[-1])
 future_prices = []
 price = last_price
-for r in future_returns.flatten():
+for r in pred_returns:
     price = price * np.exp(r)
     future_prices.append(price)
 future_predictions_prices = np.array(future_prices).reshape(-1, 1)
