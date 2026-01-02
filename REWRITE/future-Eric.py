@@ -34,9 +34,15 @@ data = yf.download(f'{crypto_currency}-{against_currency}', start=start, end=end
 # quick sanity check of downloaded dataframe (see if data downloaded correctly)
 print(data.head())
 
-# scale the 'Close' price into the range [0, 1] for stable LSTM training (feature_range shrinks the input values to a small range to avoid processing large numbers that can destabilize training)
+# define test split BEFORE fitting scalers to avoid leakage
+test_start = dt.datetime(2020, 1, 1)
+test_end = dt.datetime.now()
+train_series = data['Close'][data.index < test_start]
+
+# scale the 'Close' price into the range [0, 1] for stable LSTM training
+# IMPORTANT: fit scaler on training data only to avoid leakage
 scaler = MinMaxScaler(feature_range=(0, 1))
-scaledData = scaler.fit_transform(data['Close'].values.reshape(-1, 1))
+scaledData = scaler.fit_transform(train_series.values.reshape(-1, 1))
 
 # how many past days to use as input for each prediction (sliding window length)
 prediction_days = 365 # 60 default
@@ -148,9 +154,6 @@ except Exception as e:
 
 
 # testing ai NN
-
-test_start = dt.datetime(2020, 1, 1)
-test_end = dt.datetime.now()
 
 # download test period OHLC data and extract actual closing prices
 test_data = yf.download(f'{crypto_currency}-{against_currency}', test_start, test_end)
