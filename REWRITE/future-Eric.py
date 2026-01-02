@@ -39,10 +39,13 @@ test_start = dt.datetime(2020, 1, 1)
 test_end = dt.datetime.now()
 train_series = data['Close'][data.index < test_start]
 
-# scale the 'Close' price into the range [0, 1] for stable LSTM training
-# IMPORTANT: fit scaler on training data only to avoid leakage
+# Work in log-returns to force the model to learn dynamics instead of levels
+# compute train log-returns and fit scaler on returns only (no leakage)
+train_log = np.log(train_series)
+train_returns = train_log.diff().dropna().values.reshape(-1, 1)
+
 scaler = MinMaxScaler(feature_range=(0, 1))
-scaledData = scaler.fit_transform(train_series.values.reshape(-1, 1))
+scaled_returns = scaler.fit_transform(train_returns)
 
 # how many past days to use as input for each prediction (sliding window length)
 prediction_days = 365 # 60 default
@@ -51,14 +54,14 @@ future_day = 365     # NUMBER OF DAYS TO PREDICT INTO THE FUTURE (used for the f
 # Training horizon: predict 1 day ahead for model (so test predictions are one-day ahead)
 train_horizon = 1
 
-# prepare training dataset: build windows from the full scaled series
+# prepare training dataset: build windows from the scaled returns
 x_train, y_train = [], []
 
-# build input (x) and target (y) sliding windows for training
-# ensure target index (x + train_horizon - 1) exists
-for x in range(prediction_days, len(scaledData) - train_horizon + 1):
-    x_train.append(scaledData[x-prediction_days:x, 0])
-    y_train.append(scaledData[x + train_horizon - 1, 0])
+# build input (x) and target (y) sliding windows for training using returns
+# ensure target index exists in the returns array
+for i in range(prediction_days, len(scaled_returns) - train_horizon + 1):
+    x_train.append(scaled_returns[i-prediction_days:i, 0])
+    y_train.append(scaled_returns[i + train_horizon - 1, 0])
 
 # convert to NumPy arrays and reshape to (samples, timesteps, features)
 x_train, y_train = np.array(x_train), np.array(y_train)
@@ -163,12 +166,13 @@ actual_prices = test_data['Close'].values
 train_series = data['Close'][data.index < test_start]
 total_dataset = pandas.concat((train_series, test_data['Close']), axis=0)
 
-# slice the last (len(test_data) + prediction_days) values to get the inputs needed for creating sliding windows that cover the test period
-ai_inputs = total_dataset[len(total_dataset) - len(test_data) - prediction_days:].values
+# compute log-returns on the combined series and take the last (len(test_data)+prediction_days) returns
+total_log = np.log(total_dataset)
+total_returns = total_log.diff().dropna()
+ai_inputs_returns = total_returns[-(len(test_data) + prediction_days):].values.reshape(-1, 1)
 
-# ensure shape is (N,1) for the scaler
-ai_inputs = ai_inputs.reshape(-1, 1)
-ai_inputs = scaler.transform(ai_inputs) # Use transform instead of fit_transform
+# scale returns (scaler already fit on train returns)
+ai_inputs = scaler.transform(ai_inputs_returns)
 
 x_test = []
 
@@ -190,13 +194,22 @@ try:
     prediction_prices_scaled = prediction_prices_scaled + corrections
 except Exception:
     pass
-prediction_prices = scaler.inverse_transform(prediction_prices_scaled)
+# inverse-transform predicted returns and reconstruct price series starting from last train price
+pred_returns = scaler.inverse_transform(prediction_prices_scaled)
+start_price = float(train_series.values[-1])
+pred_prices = []
+price = start_price
+for r in pred_returns.flatten():
+    price = price * np.exp(r)
+    pred_prices.append(price)
+prediction_prices = np.array(pred_prices).reshape(-1, 1)
 
-# capture test period dates to align plot x-axis
+# capture test period dates to align plot x-axis (keep actual test dates)
 prediction_dates = test_data.index
 
-# create an offset of +1 day for predicted points so plotted predictions appear one day ahead
-prediction_dates_offset = prediction_dates + pandas.Timedelta(days=1)
+# create prediction dates aligned to the reconstruction start (day after last train date)
+train_last_date = train_series.index[-1]
+prediction_dates_offset = pandas.date_range(start=train_last_date + pandas.Timedelta(days=1), periods=len(prediction_prices))
 
 # extract last actual and predicted scalar values for reporting
 last_actual_value = actual_prices[-1]
@@ -260,9 +273,16 @@ for day in range(future_day):
     if (day + 1) % 10 == 0:
         print(f"Predicted day {day + 1}/{future_day}")
 
-# Convert predictions back to original price scale
+# Convert future predicted returns back to price scale by reconstructing from last known price
 future_predictions = np.array(future_predictions).reshape(-1, 1)
-future_predictions_prices = scaler.inverse_transform(future_predictions)
+future_returns = scaler.inverse_transform(future_predictions)
+last_price = float(data['Close'].values[-1])
+future_prices = []
+price = last_price
+for r in future_returns.flatten():
+    price = price * np.exp(r)
+    future_prices.append(price)
+future_predictions_prices = np.array(future_prices).reshape(-1, 1)
 
 # Create future dates starting from the day after the last known date
 last_date = data.index[-1]
