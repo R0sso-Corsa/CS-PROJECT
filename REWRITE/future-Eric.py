@@ -41,20 +41,49 @@ test_end = dt.datetime.now()
 train_series = data['Close'][data.index < test_start]
 
 # Work in log-returns to force the model to learn dynamics instead of levels
-# compute train log-returns and fit scaler on returns only (no leakage)
-train_log = np.log(train_series)
-train_returns = train_log.diff().dropna().values.reshape(-1, 1)
+# compute log-returns and technical indicators for the full dataset, then split
+df = pandas.DataFrame({
+    'close': data['Close'],
+    'volume': data.get('Volume', pandas.Series(index=data.index, data=np.zeros(len(data))))
+})
+df['log'] = np.log(df['close'])
+df['returns'] = df['log'].diff()
+df['ma10'] = df['close'].rolling(window=10).mean()
+df['ma50'] = df['close'].rolling(window=50).mean()
 
-scaler = MinMaxScaler(feature_range=(0, 1))
-scaled_returns = scaler.fit_transform(train_returns)
+def compute_rsi(series, period=14):
+    delta = series.diff()
+    up = delta.clip(lower=0)
+    down = -1 * delta.clip(upper=0)
+    ma_up = up.rolling(window=period).mean()
+    ma_down = down.rolling(window=period).mean()
+    rs = ma_up / ma_down
+    return 100 - (100 / (1 + rs))
+
+df['rsi'] = compute_rsi(df['close'])
+df = df.dropna()
+
+# split
+train_df = df[df.index < test_start]
+
+# scalers: one for targets (returns), one for other features
+scaler_y = MinMaxScaler(feature_range=(0, 1))
+scaler_X = MinMaxScaler()
+
+scaled_returns = scaler_y.fit_transform(train_df['returns'].values.reshape(-1, 1))
+other_cols = ['volume', 'ma10', 'ma50', 'rsi']
+scaled_X_train = scaler_X.fit_transform(train_df[other_cols].values)
+
+# combined scaled feature array for training (returns included as a feature)
+scaled_features_train = np.hstack([scaled_returns, scaled_X_train])
 
 # multi-step horizon (days) for direct forecasting
-HORIZON = future_day
+
 
 # how many past days to use as input for each prediction (sliding window length)
 prediction_days = 365 # 60 default
 future_day = 365     # NUMBER OF DAYS TO PREDICT INTO THE FUTURE (used for the forward recursive forecast)
-
+HORIZON = future_day
 # Training horizon: predict 1 day ahead for model (so test predictions are one-day ahead)
 train_horizon = 1
 
@@ -63,14 +92,19 @@ x_train, y_train = [], []
 
 # build input (x) and target (y) sliding windows for training using returns
 # ensure target index exists in the returns array
-for i in range(prediction_days, len(scaled_returns) - HORIZON + 1):
-    x_train.append(scaled_returns[i-prediction_days:i, 0])
-    # target is the next HORIZON returns starting at i
+for i in range(prediction_days, len(scaled_features_train) - HORIZON + 1):
+    x_train.append(scaled_features_train[i-prediction_days:i, :])
+    # target is the next HORIZON returns starting at i (use scaler_y scaled returns)
     y_train.append(scaled_returns[i:i+HORIZON, 0])
 
 # convert to NumPy arrays and reshape to (samples, timesteps, features)
 x_train, y_train = np.array(x_train), np.array(y_train)  # y_train shape -> (n_samples, HORIZON)
-x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+# if features present, ensure proper shape (samples, timesteps, features)
+if x_train.ndim == 3:
+    # already (samples, timesteps, features)
+    pass
+else:
+    x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], -1))
 
 # Create a time-ordered validation split to avoid leakage (walk-forward style)
 val_size = max(1, int(0.1 * x_train.shape[0]))  # 10% for validation, at least 1 sample
@@ -112,7 +146,7 @@ class DynamicDropoutCallback(Callback):
 
 # Create model with initial dropout rates
 ai = Sequential()
-ai.add(LSTM(units=100, return_sequences=True, input_shape=(x_train.shape[1], 1)))
+ai.add(LSTM(units=100, return_sequences=True, input_shape=(x_train.shape[1], x_train.shape[2])))
 ai.add(Dropout(initial_dropout))
 
 for i in range(train_time):
@@ -180,28 +214,22 @@ except Exception as e:
 test_data = yf.download(f'{crypto_currency}-{against_currency}', test_start, test_end)
 actual_prices = test_data['Close'].values
 
-# combine historical and test close series so we can build ai inputs that include the last `prediction_days` values before the test period
-train_series = data['Close'][data.index < test_start]
-total_dataset = pandas.concat((train_series, test_data['Close']), axis=0)
+# build scaled full-feature array from df and select the last (len(test_data)+prediction_days) rows for test inputs
+scaled_returns_full = scaler_y.transform(df['returns'].values.reshape(-1, 1))
+scaled_X_full = scaler_X.transform(df[other_cols].values)
+scaled_features_full = np.hstack([scaled_returns_full, scaled_X_full])
 
-# compute log-returns on the combined series and take the last (len(test_data)+prediction_days) returns
-total_log = np.log(total_dataset)
-total_returns = total_log.diff().dropna()
-ai_inputs_returns = total_returns[-(len(test_data) + prediction_days):].values.reshape(-1, 1)
-
-# scale returns (scaler already fit on train returns)
-ai_inputs = scaler.transform(ai_inputs_returns)
+ai_inputs = scaled_features_full[-(len(test_data) + prediction_days):]
 
 x_test = []
 
 # build test sequences the same way as training (sliding windows of length prediction_days)
 x_test = []
 for x in range(prediction_days, len(ai_inputs)):
-    x_test.append(ai_inputs[x-prediction_days:x, 0])
+    x_test.append(ai_inputs[x-prediction_days:x, :])
 
-# convert to numpy array and reshape to (samples, timesteps, features) for LSTM
+# convert to numpy array (should be shape (samples, timesteps, features))
 x_test = np.array(x_test)
-x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
 
 # run the ai to get normalized multi-step predictions and apply residual corrections if available
 pred_all_scaled = ai.predict(x_test)  # shape (n_test_samples, HORIZON)
@@ -214,7 +242,8 @@ except Exception:
 
 # For test-period plotting/evaluation use the 1-day ahead predictions (first column)
 pred_first_scaled = pred_all_scaled[:, 0].reshape(-1, 1)
-pred_first_returns = scaler.inverse_transform(pred_first_scaled).flatten()
+# inverse-transform first-step predicted returns using target scaler
+pred_first_returns = scaler_y.inverse_transform(pred_first_scaled).flatten()
 # approximate predicted prices for test: previous actual price * exp(predicted_return)
 prediction_prices = (actual_prices * np.exp(pred_first_returns)).reshape(-1, 1)
 
@@ -223,6 +252,26 @@ prediction_dates = test_data.index
 
 # create one-day offset for predicted points so plotted predictions appear one day ahead
 prediction_dates_offset = prediction_dates + pandas.Timedelta(days=1)
+
+# Evaluate model 1-day-ahead predictions against a naive persistence baseline
+try:
+    if len(actual_prices) > 1:
+        y_true = actual_prices[1:]
+        y_pred = prediction_prices[:-1].flatten()
+        baseline_pred = actual_prices[:-1]  # naive: next price = current price
+
+        mae = np.mean(np.abs(y_true - y_pred))
+        rmse = np.sqrt(np.mean((y_true - y_pred) ** 2))
+        mape = np.mean(np.abs((y_true - y_pred) / y_true)) * 100
+
+        base_mae = np.mean(np.abs(y_true - baseline_pred))
+        base_rmse = np.sqrt(np.mean((y_true - baseline_pred) ** 2))
+        base_mape = np.mean(np.abs((y_true - baseline_pred) / y_true)) * 100
+
+        print(f"\nEvaluation (1-day ahead): MAE={mae:.4f}, RMSE={rmse:.4f}, MAPE={mape:.2f}%")
+        print(f"Naive baseline: MAE={base_mae:.4f}, RMSE={base_rmse:.4f}, MAPE={base_mape:.2f}%")
+except Exception:
+    pass
 
 # extract last actual and predicted scalar values for reporting
 last_actual_value = actual_prices[-1]
@@ -259,7 +308,7 @@ print(f"{'='*60}\n")
 
 
 # Direct multi-step forecast from the last available input using the trained model
-last_input = ai_inputs[-prediction_days:].reshape(1, prediction_days, 1)
+last_input = ai_inputs[-prediction_days:].reshape(1, prediction_days, ai_inputs.shape[1])
 last_pred_scaled = ai.predict(last_input)[0]  # shape (HORIZON,)
 try:
     last_pred_scaled = last_pred_scaled + gbr_res.predict(last_input.reshape(1, -1))[0]
@@ -267,7 +316,7 @@ except Exception:
     pass
 
 # inverse-transform returns and reconstruct price trajectory
-pred_returns = scaler.inverse_transform(last_pred_scaled.reshape(-1, 1)).flatten()
+pred_returns = scaler_y.inverse_transform(last_pred_scaled.reshape(-1, 1)).flatten()
 last_price = float(data['Close'].values[-1])
 future_prices = []
 price = last_price
