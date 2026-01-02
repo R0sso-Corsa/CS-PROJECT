@@ -36,18 +36,20 @@ scaler = MinMaxScaler(feature_range=(0, 1))
 scaledData = scaler.fit_transform(data['Close'].values.reshape(-1, 1))
 
 # how many past days to use as input for each prediction (sliding window length)
-prediction_days = 120 # 60 default
-future_day = 30     # NUMBER OF DAYS TO PREDICT INTO THE FUTURE (horizon for direct target)
+prediction_days = 365 # 60 default
+future_day = 365     # NUMBER OF DAYS TO PREDICT INTO THE FUTURE (used for the forward recursive forecast)
+
+# Training horizon: predict 1 day ahead for model (so test predictions are one-day ahead)
+train_horizon = 1
 
 # prepare training dataset: build windows from the full scaled series
-# Target is now the value `future_day` ahead (makes the 30-day prediction more aggressive)
 x_train, y_train = [], []
 
 # build input (x) and target (y) sliding windows for training
-# ensure target index (x + future_day - 1) exists
-for x in range(prediction_days, len(scaledData) - future_day + 1):
+# ensure target index (x + train_horizon - 1) exists
+for x in range(prediction_days, len(scaledData) - train_horizon + 1):
     x_train.append(scaledData[x-prediction_days:x, 0])
-    y_train.append(scaledData[x + future_day - 1, 0])
+    y_train.append(scaledData[x + train_horizon - 1, 0])
 
 # convert to NumPy arrays and reshape to (samples, timesteps, features)
 x_train, y_train = np.array(x_train), np.array(y_train)
@@ -59,8 +61,8 @@ def get_dynamic_dropout(epoch, total_epochs, initial_rate=0.5, final_rate=0.1):
     return max(final_rate, initial_rate - (initial_rate - final_rate) * (epoch / total_epochs))
 
 # Then modify your model definition section. Replace the current LSTM/Dropout pattern with:
-epochs = 30  # increase training epochs for better learning
-initial_dropout = 0.3  # Start with lower dropout to avoid oversmoothing
+epochs = 2  # increase training epochs for better learning
+initial_dropout = 0.5  # Start with lower dropout to avoid oversmoothing
 final_dropout = 0.05   # End with small dropout
 batchSize = 64
 train_time = 1 # do not use decimals
@@ -152,7 +154,8 @@ test_data = yf.download(f'{crypto_currency}-{against_currency}', test_start, tes
 actual_prices = test_data['Close'].values
 
 # combine historical and test close series so we can build ai inputs that include the last `prediction_days` values before the test period
-total_dataset = pandas.concat((data['Close'], test_data['Close']), axis=0)
+train_series = data['Close'][data.index < test_start]
+total_dataset = pandas.concat((train_series, test_data['Close']), axis=0)
 
 # slice the last (len(test_data) + prediction_days) values to get the inputs needed for creating sliding windows that cover the test period
 ai_inputs = total_dataset[len(total_dataset) - len(test_data) - prediction_days:].values
@@ -312,6 +315,16 @@ graph.set_ylabel(f'{crypto_currency} Price ({against_currency})')
 graph.legend(loc='upper left')
 graph.grid(True, alpha=0.3)
 fig.autofmt_xdate()
+
+def annotate_point(event):
+   if event.inaxes:
+      x_cursor, y_cursor = event.xdata, event.ydata
+      index = np.argmin(np.abs(x - x_cursor))  # Find nearest index to the cursor position
+      graph.annotate(
+         f'({x[index]:.2f}, {y[index]:.2f})', xy=(x[index], y[index]),
+         xytext=(x[index] + 1, y[index] + 0.5), arrowprops=dict(facecolor='black', arrowstyle='->'),
+         fontsize=8, color='black')
+   fig.canvas.draw_idle()
 
 #IMAGE EXPORT - high resolution PNG and SVG (vector)
 # save high-resolution raster (PNG) and vector (SVG) files into the current working directory
