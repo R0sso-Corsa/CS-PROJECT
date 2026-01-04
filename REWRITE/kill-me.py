@@ -100,7 +100,7 @@ scaled_features_train = np.hstack([scaled_returns, scaled_X_train])
 
 
 # how many past days to use as input for each prediction (sliding window length)
-prediction_days = 100 # 60 default
+prediction_days = 365 # 60 default
 future_day = 30     # NUMBER OF DAYS TO PREDICT INTO THE FUTURE (used for the forward recursive forecast)
 HORIZON = future_day
 # Training horizon: predict 1 day ahead for model (so test predictions are one-day ahead)
@@ -125,15 +125,6 @@ if x_train.ndim == 3:
 else:
     x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], -1))
 
-# Debug: print training data stats to diagnose flat predictions
-try:
-    print(f"DEBUG: x_train shape={x_train.shape}, y_train shape={y_train.shape}")
-    print(f"DEBUG: y_train stats min={np.nanmin(y_train):.6g}, max={np.nanmax(y_train):.6g}, mean={np.nanmean(y_train):.6g}, std={np.nanstd(y_train):.6g}")
-    print(f"DEBUG: scaler_y data_min={scaler_y.data_min_}, data_max={scaler_y.data_max_}, data_range={scaler_y.data_range_}")
-    print(f"DEBUG: scaler_X data_min sample={scaler_X.data_min_[:4] if hasattr(scaler_X, 'data_min_') else 'NA'}")
-except Exception as e:
-    print('DEBUG: failed printing training stats', e)
-
 # Create a time-ordered validation split to avoid leakage (walk-forward style)
 val_size = max(1, int(0.1 * x_train.shape[0]))  # 10% for validation, at least 1 sample
 x_val = x_train[-val_size:]
@@ -145,6 +136,7 @@ y_train = y_train[:-val_size]
 # Early stopping callback to prevent overfitting (restores best weights)
 early_stop = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
 
+# Add this function near the top of your file, after imports:
 def get_dynamic_dropout(epoch, total_epochs, initial_rate=0.5, final_rate=0.1):
     """Calculate dropout rate that decreases linearly with epochs"""
     return max(final_rate, initial_rate - (initial_rate - final_rate) * (epoch / total_epochs))
@@ -279,9 +271,7 @@ except Exception:
 pred_first_returns = scaler_y.inverse_transform(pred_first_scaled).flatten()
 print(f"pred_first_returns stats: min={np.min(pred_first_returns):.6g}, max={np.max(pred_first_returns):.6g}, mean={np.mean(pred_first_returns):.6g}, std={np.std(pred_first_returns):.6g}")
 # approximate predicted prices for test: previous actual price * exp(predicted_return)
-actual_prices = np.asarray(actual_prices).reshape(-1)
-pred_first_returns = np.asarray(pred_first_returns).reshape(-1)
-prediction_prices = (actual_prices[:len(pred_first_returns)] * np.exp(pred_first_returns)).reshape(-1, 1)
+prediction_prices = (actual_prices * np.exp(pred_first_returns)).reshape(-1, 1)
 
 # capture test period dates to align plot x-axis (keep actual test dates)
 prediction_dates = test_data.index
@@ -361,14 +351,6 @@ for r in pred_returns:
     price = price * np.exp(r)
     future_prices.append(price)
 future_predictions_prices = np.array(future_prices).reshape(-1, 1)
-
-# Debug: stats for reconstructed future prices
-try:
-    print(f"DEBUG: future_predictions_prices shape={future_predictions_prices.shape}")
-    print(f"DEBUG: future_prices stats min={np.nanmin(future_predictions_prices):.6g}, max={np.nanmax(future_predictions_prices):.6g}, mean={np.nanmean(future_predictions_prices):.6g}, std={np.nanstd(future_predictions_prices):.6g}")
-    print("DEBUG: future sample:", future_predictions_prices.flatten()[:10])
-except Exception as e:
-    print('DEBUG: failed printing future preds', e)
 
 # Create future dates starting from the day after the last known date
 last_date = data.index[-1]
@@ -453,15 +435,15 @@ def on_move(event):
         # Remove previous crosshair lines (no setter on Axes.lines)
         for line in list(graph.lines):
             try:
-                if (line.get_linestyle() == '--') and (line.get_color() in ('magenta', 'blue')):
+                if (line.get_linestyle() == '--') and (line.get_color() in ('red', 'blue')):
                     line.remove()
             except Exception:
                 # ignore any unexpected line objects
                 pass
 
         # Add new crosshair lines
-            graph.axvline(event.xdata, color='magenta', linestyle='--')  # Vertical crosshair (use unique color)
-            graph.axhline(event.ydata, color='blue', linestyle='--')  # Horizontal crosshair
+        graph.axvline(event.xdata, color='red', linestyle='--')  # Vertical line
+        graph.axhline(event.ydata, color='blue', linestyle='--')  # Horizontal line
         plt.draw()
 
 fig.canvas.mpl_connect('motion_notify_event', on_move)
