@@ -157,6 +157,7 @@ epochs = 20  # increase training epochs for better learning
 initial_dropout = 0.5  # Start with lower dropout to avoid oversmoothing
 final_dropout = 0.05   # End with small dropout
 batchSize = 1 # smaller batch size for less frequent updates
+use_sigmoid_output = True  # if True, final Dense uses sigmoid activation to bound outputs in [0,1]
 train_time = 1 # do not use decimals
 class DynamicDropoutCallback(Callback):
     def __init__(self, total_epochs, initial_rate=0.5, final_rate=0.1):
@@ -189,7 +190,10 @@ ai.add(Dropout(initial_dropout))
 ai.add(LSTM(units=100))
 ai.add(Dropout(initial_dropout))
 
-ai.add(Dense(units=HORIZON))
+if use_sigmoid_output:
+    ai.add(Dense(units=HORIZON, activation='sigmoid'))
+else:
+    ai.add(Dense(units=HORIZON))
 
 # Add the dynamic dropout callback to your training
 dynamic_dropout = DynamicDropoutCallback(epochs, initial_dropout, final_dropout)
