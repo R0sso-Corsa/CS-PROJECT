@@ -11,17 +11,29 @@ import pandas                   # dataframes and manipulation
 import yfinance as yf           # download market data from Yahoo Finance [Yahoo Finance API is unofficial and may break {ACTUAL YAHOO FINANCE API IS DISCONTINUED AND UNAVAILABLE}]
 import datetime as dt
 
-from sklearn.preprocessing import MinMaxScaler           # scale values to 0-1 for NN
+import tensorflow as tf
+from sklearn.preprocessing import MinMaxScaler, StandardScaler           # scale values to 0-1 for NN
 from tensorflow.keras.models import Sequential           # import TensorFlow Keras API
-from tensorflow.keras.layers import Dense, LSTM, Dropout # import TensorFlow Keras API
-from tensorflow.keras.callbacks import TensorBoard, Callback, EarlyStopping                # TensorBoard callback for visualization
+from tensorflow.keras.layers import Dense, LSTM, Dropout, BatchNormalization
+from tensorflow.keras.callbacks import TensorBoard, Callback, EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
+from tensorflow.keras import regularizers                # TensorBoard callback for visualization
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.linear_model import Ridge
+import pandas_ta as ta
 import os                                                # filesystem operations (saving files, cwd)
 
-os.environ['TENSORFLOW_INTRA_OP_PARALLELISM_THREADS'] = '3'
-os.environ['TENSORFLOW_INTER_OP_PARALLELISM_THREADS'] = '3'
+# Force usage of all cores
+num_cores = 12
+os.environ['OMP_NUM_THREADS'] = str(num_cores)
+os.environ['MKL_NUM_THREADS'] = str(num_cores)
+os.environ['TENSORFLOW_INTRA_OP_PARALLELISM_THREADS'] = str(num_cores)
+os.environ['TENSORFLOW_INTER_OP_PARALLELISM_THREADS'] = str(num_cores)
+
+tf.config.threading.set_intra_op_parallelism_threads(num_cores)
+tf.config.threading.set_inter_op_parallelism_threads(num_cores)
+
+
 
 # create a reusable figure/axis early so other code can add to it later
 fig = plt.figure(figsize=(18, 9))
@@ -65,13 +77,45 @@ if 'Volume' in getattr(data, 'columns', []):
 else:
     volume_series = pandas.Series(np.zeros(len(close_series)), index=close_series.index)
 
+# Robustly extract High, Low, Open if available, else default to Close
+def get_series_safe(data_obj, col_name, fallback_series):
+    if hasattr(data_obj, 'columns') and col_name in data_obj.columns:
+        return data_obj[col_name]
+    return fallback_series
+
+high_series = get_series_safe(data, 'High', close_series)
+low_series = get_series_safe(data, 'Low', close_series)
+open_series = get_series_safe(data, 'Open', close_series)
+
 df = pandas.DataFrame(index=close_series.index)
 df['close'] = close_series.values
+df['high'] = high_series.reindex(df.index).values
+df['low'] = low_series.reindex(df.index).values
+df['open'] = open_series.reindex(df.index).values
 df['volume'] = volume_series.reindex(df.index).values
 df['log'] = np.log(df['close'])
 df['returns'] = df['log'].diff()
 df['ma10'] = df['close'].rolling(window=10).mean()
 df['ma50'] = df['close'].rolling(window=50).mean()
+
+# Add pandas_ta indicators
+try:
+    df.ta.atr(append=True)
+    df.ta.ema(append=True)
+    df.ta.macd(append=True)
+    df.ta.bbands(append=True)
+    df.ta.obv(append=True)
+except Exception as e:
+    print(f"Warning: pandas_ta failed to add some indicators: {e}")
+
+# Debug: print columns to verify indicators are present
+print(f"DEBUG: df.columns after technical analysis: {df.columns.tolist()}")
+
+
+# Add calendar features
+df['day_of_week'] = df.index.dayofweek
+df['month'] = df.index.month
+
 
 def compute_rsi(series, period=14):
     delta = series.diff()
@@ -89,11 +133,19 @@ df = df.dropna()
 train_df = df[df.index < test_start]
 
 # scalers: one for targets (returns), one for other features
-scaler_y = MinMaxScaler(feature_range=(0, 1))
+scaler_y = StandardScaler()
 scaler_X = MinMaxScaler()
 
 scaled_returns = scaler_y.fit_transform(train_df['returns'].values.reshape(-1, 1))
-other_cols = ['volume', 'ma10', 'ma50', 'rsi']
+other_cols = ['volume', 'ma10', 'ma50', 'rsi', 'ATRr_14', 'EMA_10', 'MACD_12_26_9', 'MACDh_12_26_9', 'MACDs_12_26_9', 'BBL_5_2.0', 'BBM_5_2.0', 'BBU_5_2.0', 'BBB_5_2.0', 'BBP_5_2.0', 'OBV', 'day_of_week', 'month']
+
+# Filter other_cols to only those present in df (avoids KeyErrors if indicators failed)
+existing_cols = [c for c in other_cols if c in df.columns]
+missing_cols = list(set(other_cols) - set(existing_cols))
+if missing_cols:
+    print(f"Warning: The following expected features are missing from the dataframe and will be skipped: {missing_cols}")
+other_cols = existing_cols
+
 scaled_X_train = scaler_X.fit_transform(train_df[other_cols].values)
 
 # combined scaled feature array for training (returns included as a feature)
@@ -145,20 +197,37 @@ y_val = y_train[-val_size:]
 x_train = x_train[:-val_size]
 y_train = y_train[:-val_size]
 
+# Create tf.data.Dataset objects
+train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+val_dataset = tf.data.Dataset.from_tensor_slices((x_val, y_val))
+
+# Optimize datasets
+BUFFER_SIZE = 1000
+
+
 # Early stopping callback to prevent overfitting (restores best weights)
 early_stop = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+
+# Reduce learning rate when a metric has stopped improving
+reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=0.00001)
+
+# Save the best model during training
+model_checkpoint = ModelCheckpoint('best_model.keras', monitor='val_loss', save_best_only=True)
+
 
 def get_dynamic_dropout(epoch, total_epochs, initial_rate=0.5, final_rate=0.1):
     """Calculate dropout rate that decreases linearly with epochs"""
     return max(final_rate, initial_rate - (initial_rate - final_rate) * (epoch / total_epochs))
 
 # Then modify your model definition section. Replace the current LSTM/Dropout pattern with:
-epochs = 20  # increase training epochs for better learning
+epochs = 10  # increase training epochs for better learning
 initial_dropout = 0.5  # Start with lower dropout to avoid oversmoothing
 final_dropout = 0.05   # End with small dropout
 batchSize = 1 # smaller batch size for less frequent updates
-use_sigmoid_output = True  # if True, final Dense uses sigmoid activation to bound outputs in [0,1]
-train_time = 1 # do not use decimals
+use_sigmoid_output = False  # if True, final Dense uses sigmoid activation to bound outputs in [0,1]
+train_time = 0 # do not use decimals
+train_dataset = train_dataset.cache().shuffle(BUFFER_SIZE).batch(batchSize).prefetch(tf.data.AUTOTUNE)
+val_dataset = val_dataset.cache().batch(batchSize).prefetch(tf.data.AUTOTUNE)
 class DynamicDropoutCallback(Callback):
     def __init__(self, total_epochs, initial_rate=0.5, final_rate=0.1):
         super().__init__()
@@ -177,17 +246,21 @@ class DynamicDropoutCallback(Callback):
 
 # Create model with initial dropout rates
 ai = Sequential()
-ai.add(LSTM(units=100, return_sequences=True, input_shape=(x_train.shape[1], x_train.shape[2])))
+ai.add(LSTM(units=100, return_sequences=True, input_shape=(x_train.shape[1], x_train.shape[2]), kernel_regularizer=regularizers.l2(0.001)))
+ai.add(BatchNormalization())
 ai.add(Dropout(initial_dropout))
 
 for i in range(train_time):
-    ai.add(LSTM(units=100, return_sequences=True))
+    ai.add(LSTM(units=100, return_sequences=True, kernel_regularizer=regularizers.l2(0.001)))
+    ai.add(BatchNormalization())
     ai.add(Dropout(initial_dropout))
 
-ai.add(LSTM(units=100, return_sequences=True))
+ai.add(LSTM(units=100, return_sequences=True, kernel_regularizer=regularizers.l2(0.001)))
+ai.add(BatchNormalization())
 ai.add(Dropout(initial_dropout))
 
-ai.add(LSTM(units=100))
+ai.add(LSTM(units=100, kernel_regularizer=regularizers.l2(0.001)))
+ai.add(BatchNormalization())
 ai.add(Dropout(initial_dropout))
 
 if use_sigmoid_output:
@@ -221,11 +294,10 @@ print(f"{'='*60}\n")
 ai.compile(optimizer='adam', loss='mean_absolute_error')
 
 # Modify your model.fit call to include the new callback:
-ai.fit(x_train, y_train,
+ai.fit(train_dataset,
     epochs=epochs,
-    batch_size=batchSize,
-    validation_data=(x_val, y_val),
-    callbacks=[tensorboard_callback, dynamic_dropout, early_stop],
+    validation_data=val_dataset,
+    callbacks=[tensorboard_callback, dynamic_dropout, early_stop, reduce_lr, model_checkpoint],
     verbose=1)
 
 # Train a residual model (gradient boosting) on flattened windows to recover sharper local moves
@@ -276,7 +348,7 @@ except Exception:
     pass
 # Prevent extreme extrapolation when using MinMaxScaler inverse_transform:
 # clip scaled predictions to [0,1] (the scaler's feature_range) before inverse transforming.
-pred_all_scaled = np.clip(pred_all_scaled, 0.0, 1.0)
+# pred_all_scaled = np.clip(pred_all_scaled, 0.0, 1.0)
 
 # For test-period plotting/evaluation use the 1-day ahead predictions (first column)
 pred_first_scaled = pred_all_scaled[:, 0].reshape(-1, 1)
@@ -316,7 +388,19 @@ try:
 
         print(f"\nEvaluation (1-day ahead): MAE={mae:.4f}, RMSE={rmse:.4f}, MAPE={mape:.2f}%")
         print(f"Naive baseline: MAE={base_mae:.4f}, RMSE={base_rmse:.4f}, MAPE={base_mape:.2f}%")
-except Exception:
+
+        # Plot residuals
+        residuals = y_true - y_pred
+        plt.figure(figsize=(18, 9))
+        plt.plot(test_data.index[1:len(residuals)+1], residuals, color='red', label='Residuals')
+        plt.axhline(y=0, color='black', linestyle='--')
+        plt.title('Residuals of Predictions')
+        plt.xlabel('Date')
+        plt.ylabel('Error')
+        plt.legend()
+        plt.savefig('residuals_plot.png')
+except Exception as e:
+    print("Error during evaluation:", e)
     pass
 
 # extract last actual and predicted scalar values for reporting
@@ -361,7 +445,7 @@ try:
 except Exception:
     pass
 # Clip multi-step scaled predictions to avoid MinMaxScaler extrapolation -> extreme returns
-last_pred_scaled = np.clip(last_pred_scaled, 0.0, 1.0)
+# last_pred_scaled = np.clip(last_pred_scaled, 0.0, 1.0)
 print(f"last_pred_scaled stats (clipped): mean={np.mean(last_pred_scaled):.6g}, std={np.std(last_pred_scaled):.6g}, min={np.min(last_pred_scaled):.6g}, max={np.max(last_pred_scaled):.6g}")
 
 # inverse-transform returns and reconstruct price trajectory
