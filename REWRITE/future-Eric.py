@@ -20,6 +20,9 @@ from sklearn.multioutput import MultiOutputRegressor
 from sklearn.linear_model import Ridge
 import os                                                # filesystem operations (saving files, cwd)
 
+os.environ['TENSORFLOW_INTRA_OP_PARALLELISM_THREADS'] = '3'
+os.environ['TENSORFLOW_INTER_OP_PARALLELISM_THREADS'] = '3'
+
 # create a reusable figure/axis early so other code can add to it later
 fig = plt.figure(figsize=(18, 9))
 graph = fig.add_subplot(1, 1, 1)
@@ -100,7 +103,7 @@ scaled_features_train = np.hstack([scaled_returns, scaled_X_train])
 
 
 # how many past days to use as input for each prediction (sliding window length)
-prediction_days = 100 # 60 default
+prediction_days = 200 # 60 default
 future_day = 30     # NUMBER OF DAYS TO PREDICT INTO THE FUTURE (used for the forward recursive forecast)
 HORIZON = future_day
 # Training horizon: predict 1 day ahead for model (so test predictions are one-day ahead)
@@ -150,10 +153,10 @@ def get_dynamic_dropout(epoch, total_epochs, initial_rate=0.5, final_rate=0.1):
     return max(final_rate, initial_rate - (initial_rate - final_rate) * (epoch / total_epochs))
 
 # Then modify your model definition section. Replace the current LSTM/Dropout pattern with:
-epochs = 2  # increase training epochs for better learning
+epochs = 20  # increase training epochs for better learning
 initial_dropout = 0.5  # Start with lower dropout to avoid oversmoothing
 final_dropout = 0.05   # End with small dropout
-batchSize = 64
+batchSize = 1 # smaller batch size for less frequent updates
 train_time = 1 # do not use decimals
 class DynamicDropoutCallback(Callback):
     def __init__(self, total_epochs, initial_rate=0.5, final_rate=0.1):
@@ -267,6 +270,9 @@ try:
     pred_all_scaled = pred_all_scaled + corrections
 except Exception:
     pass
+# Prevent extreme extrapolation when using MinMaxScaler inverse_transform:
+# clip scaled predictions to [0,1] (the scaler's feature_range) before inverse transforming.
+pred_all_scaled = np.clip(pred_all_scaled, 0.0, 1.0)
 
 # For test-period plotting/evaluation use the 1-day ahead predictions (first column)
 pred_first_scaled = pred_all_scaled[:, 0].reshape(-1, 1)
@@ -350,7 +356,9 @@ try:
     last_pred_scaled = last_pred_scaled + gbr_res.predict(last_input.reshape(1, -1))[0]
 except Exception:
     pass
-print(f"last_pred_scaled stats: mean={np.mean(last_pred_scaled):.6g}, std={np.std(last_pred_scaled):.6g}, min={np.min(last_pred_scaled):.6g}, max={np.max(last_pred_scaled):.6g}")
+# Clip multi-step scaled predictions to avoid MinMaxScaler extrapolation -> extreme returns
+last_pred_scaled = np.clip(last_pred_scaled, 0.0, 1.0)
+print(f"last_pred_scaled stats (clipped): mean={np.mean(last_pred_scaled):.6g}, std={np.std(last_pred_scaled):.6g}, min={np.min(last_pred_scaled):.6g}, max={np.max(last_pred_scaled):.6g}")
 
 # inverse-transform returns and reconstruct price trajectory
 pred_returns = scaler_y.inverse_transform(last_pred_scaled.reshape(-1, 1)).flatten()
@@ -425,7 +433,7 @@ graph.plot(prediction_dates_offset, prediction_prices, color='green', label='Pre
 # Plot future predictions on the existing graph with a different color (red)
 graph.plot(future_dates, future_predictions_prices, color='red', label=f'Future Forecast ({future_day} days)',
           linewidth=2.5, linestyle='--', marker='o', markersize=4)
-
+"""
 # Plot connection lines between actual and predicted (optional, can be commented out if too cluttered)
 for x1, y1, x2, y2 in zip(prediction_dates, actual_prices,
                           prediction_dates_offset, prediction_prices):
@@ -436,7 +444,7 @@ for x1, y1, x2, y2 in zip(prediction_dates, actual_prices,
     except Exception:
         # skip if values cannot be coerced to float
         continue
-
+"""
 # Add vertical line at current date
 graph.axvline(x=last_date, color='orange', linestyle=':', linewidth=2, label='Current Date', alpha=0.7)
 
@@ -448,21 +456,22 @@ graph.legend(loc='upper left')
 graph.grid(True, alpha=0.3)
 fig.autofmt_xdate()
 
+# create persistent crosshair lines (initially hidden) to avoid adding/removing on every mouse move
+# initialize at the last known date/price so x=0 doesn't expand the datetime axis to 1970
+crosshair_v = graph.axvline(last_date, color='magenta', linestyle='--', visible=False)
+crosshair_h = graph.axhline(last_price, color='blue', linestyle='--', visible=False)
+
 def on_move(event):
     if event.inaxes:
-        # Remove previous crosshair lines (no setter on Axes.lines)
-        for line in list(graph.lines):
-            try:
-                if (line.get_linestyle() == '--') and (line.get_color() in ('magenta', 'blue')):
-                    line.remove()
-            except Exception:
-                # ignore any unexpected line objects
-                pass
-
-        # Add new crosshair lines
-            graph.axvline(event.xdata, color='magenta', linestyle='--')  # Vertical crosshair (use unique color)
-            graph.axhline(event.ydata, color='blue', linestyle='--')  # Horizontal crosshair
-        plt.draw()
+        # Update persistent crosshair lines instead of adding/removing them each event
+        try:
+            crosshair_v.set_xdata(event.xdata)
+            crosshair_v.set_visible(True)
+            crosshair_h.set_ydata(event.ydata)
+            crosshair_h.set_visible(True)
+            fig.canvas.draw_idle()
+        except Exception:
+            pass
 
 fig.canvas.mpl_connect('motion_notify_event', on_move)
 
