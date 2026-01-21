@@ -45,7 +45,7 @@ scaler = MinMaxScaler(feature_range=(0, 1))
 scaledData = scaler.fit_transform(data['Close'].values.reshape(-1, 1))
 
 # how many past days to use as input for each prediction (sliding window length)
-prediction_days = 120 # 60 default
+prediction_days = 60 # 60 default
 future_day = 30     # NUMBER OF DAYS TO PREDICT INTO THE FUTURE
 
 # prepare training dataset: remove the final `prediction_days` so we can make complete input windows of length `prediction_days` that have a following target
@@ -72,7 +72,7 @@ epochs = 20  # Match this with your model.fit epochs parameter
 initial_dropout = 0.5  # Start with 50% dropout
 final_dropout = 0.1   # End with 10% dropout
 batchSize = 1000
-train_time = 3 # do not use decimals
+train_time = 1 # do not use decimals
 
 class DynamicDropoutCallback(Callback):
     def __init__(self, total_epochs, initial_rate=0.5, final_rate=0.1):
@@ -389,12 +389,12 @@ def motion_hover(event):
     fig.canvas.draw_idle()
 
 fig.canvas.mpl_connect("motion_notify_event", motion_hover)
-
+present_day = dt.datetime.now().date()
 #IMAGE EXPORT - high resolution PNG and SVG (vector)
 # save high-resolution raster (PNG) and vector (SVG) files into the current working directory
 out_dir = os.getcwd()
-fig.savefig(os.path.join(out_dir, "{}.png"), dpi=600, bbox_inches="tight")  # high DPI raster
-fig.savefig(os.path.join(out_dir, "plot_highres.svg"), bbox_inches="tight")           # vector (infinite resolution)
+fig.savefig(os.path.join(out_dir, f"{present_day}.png"), dpi=600, bbox_inches="tight")  # high DPI raster
+fig.savefig(os.path.join(out_dir, f"{present_day}_highres.svg"), bbox_inches="tight")           # vector (infinite resolution)
 
 # Export future predictions to CSV
 forecast_df = pandas.DataFrame({
