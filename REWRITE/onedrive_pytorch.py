@@ -12,12 +12,22 @@ import yfinance as yf
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-from torch.utils.tensorboard import SummaryWriter
+# TensorBoard writer: prefer torch's bundled SummaryWriter, fall back to tensorboardX, else disable
+try:
+    from torch.utils.tensorboard import SummaryWriter
+    _TB_BACKEND = 'torch'
+except Exception:
+    try:
+        from tensorboardX import SummaryWriter  # type: ignore
+        _TB_BACKEND = 'tensorboardX'
+    except Exception:
+        SummaryWriter = None
+        _TB_BACKEND = None
 from sklearn.preprocessing import MinMaxScaler
 
 
 # ----------------------- Configuration -----------------------
-chart = '^GSPC'
+chart = 'BTC-USD'
 prediction_days = 60
 future_day = 30
 epochs = 20
@@ -122,10 +132,27 @@ def main():
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-    # tensorboard writer
+    # tensorboard writer (create only if available)
     log_dir = os.path.join('logs', 'fit', dt.datetime.now().strftime('%Y%m%d-%H%M%S'))
-    writer = SummaryWriter(log_dir=log_dir)
-    print(f"TensorBoard logs: {log_dir}")
+    if SummaryWriter is not None:
+        try:
+            writer = SummaryWriter(log_dir=log_dir)
+            print(f"TensorBoard ({_TB_BACKEND}) logs: {log_dir}")
+        except Exception as e:
+            print(f"Warning: SummaryWriter failed to initialize: {e}")
+            writer = None
+    else:
+        writer = None
+        print('TensorBoard not available; continuing without it.')
+
+    # try to log the model graph (best-effort)
+    if writer is not None:
+        try:
+            sample_input = torch.zeros((1, prediction_days, 1), device=device)
+            writer.add_graph(model, sample_input)
+        except Exception:
+            # some models / environments don't support add_graph; ignore
+            pass
 
     # training loop with dynamic dropout
     for epoch in range(epochs):
@@ -145,10 +172,18 @@ def main():
             epoch_loss += loss.item() * xb.size(0)
 
         epoch_loss /= len(dataset)
-        writer.add_scalar('Loss/train', epoch_loss, epoch)
+        if writer is not None:
+            try:
+                writer.add_scalar('Loss/train', epoch_loss, epoch)
+            except Exception:
+                pass
         print(f"Epoch {epoch+1}/{epochs} — Loss: {epoch_loss:.6f} — Dropout: {new_p:.3f}")
 
-    writer.close()
+    if writer is not None:
+        try:
+            writer.close()
+        except Exception:
+            pass
 
     # Prepare test data
     use_earliest_test = False
