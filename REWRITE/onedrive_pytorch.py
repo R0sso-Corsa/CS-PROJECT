@@ -11,6 +11,10 @@ import yfinance as yf
 
 import torch
 import torch.nn as nn
+# progress bars
+from tqdm.auto import trange, tqdm
+# Disable MIOpen (cudnn) to avoid RuntimeError: miopenStatusUnknownError with LSTM on ROCm
+torch.backends.cudnn.enabled = False
 from torch.utils.data import Dataset, DataLoader
 # TensorBoard writer: prefer torch's bundled SummaryWriter, fall back to tensorboardX, else disable
 try:
@@ -27,7 +31,55 @@ from sklearn.preprocessing import MinMaxScaler
 
 
 # ----------------------- Configuration -----------------------
-chart = 'BTC-USD'
+def finder(query: str):
+    """Search for symbols matching `query` using yfinance and return the Search response."""
+    try:
+        return yf.Search(query)
+    except Exception:
+        return None
+
+
+def choose_chart_interactive():
+    """Ask the user to enter a ticker or search for one interactively.
+
+    Return a chosen ticker symbol (string).
+    """
+    while True:
+        choice = input("Enter ticker symbol (or enter 's' to search): ").strip()
+        if not choice:
+            continue
+        if choice.lower() == 's':
+            query = input("Search query (company name or ticker fragment): ").strip()
+            if not query:
+                print("Empty query; try again.")
+                continue
+            results = finder(query)
+            if results and getattr(results, 'quotes', None):
+                print(f"Search results for '{query}':")
+                for i, q in enumerate(results.quotes):
+                    print(f"{i+1}. {q.get('symbol')} - {q.get('shortname')} ({q.get('quoteType')})")
+                sel = input("Enter number to select a symbol, or press Enter to cancel: ").strip()
+                if sel.isdigit():
+                    idx = int(sel) - 1
+                    if 0 <= idx < len(results.quotes):
+                        symbol = results.quotes[idx].get('symbol')
+                        print(f"Selected: {symbol}")
+                        return symbol
+                    else:
+                        print("Selection out of range; try again.")
+                        continue
+                else:
+                    print("No selection made; returning to main prompt.")
+                    continue
+            else:
+                print("No search results found; try a different query.")
+                continue
+        else:
+            return choice
+
+
+# ask user for chart symbol (interactive search available)
+chart = choose_chart_interactive()
 prediction_days = 60
 future_day = 30
 epochs = 20
@@ -36,8 +88,12 @@ initial_dropout = 0.5
 final_dropout = 0.1
 train_time = 1
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device_type = input("Enter device type (cpu/cuda): ").strip().lower()
 
+device = torch.device('cuda' if (device_type == 'cuda' and torch.cuda.is_available()) else 'cpu')
+print(f"Using device: {device}")
+
+# ----------------------- End Configuration -----------------------
 
 def get_dynamic_dropout(epoch, total_epochs, initial_rate=0.5, final_rate=0.1):
     return max(final_rate, initial_rate - (initial_rate - final_rate) * (epoch / total_epochs))
@@ -155,13 +211,15 @@ def main():
             pass
 
     # training loop with dynamic dropout
-    for epoch in range(epochs):
+    # training with progress bars (trange for epochs, tqdm for batch progress)
+    for epoch in trange(epochs, desc='Epochs', unit='epoch'):
         model.train()
         epoch_loss = 0.0
         new_p = get_dynamic_dropout(epoch, epochs, initial_dropout, final_dropout)
         set_dropout(model, new_p)
 
-        for xb, yb in dataloader:
+        batch_iter = tqdm(dataloader, desc=f'Epoch {epoch+1}/{epochs}', leave=False, unit='batch')
+        for xb, yb in batch_iter:
             xb = xb.to(device)
             yb = yb.to(device).unsqueeze(1)
             optimizer.zero_grad()
@@ -171,13 +229,18 @@ def main():
             optimizer.step()
             epoch_loss += loss.item() * xb.size(0)
 
+            # update batch progress with current batch loss
+            batch_iter.set_postfix({'batch_loss': f'{loss.item():.6f}', 'dropout': f'{new_p:.3f}'})
+
         epoch_loss /= len(dataset)
         if writer is not None:
             try:
                 writer.add_scalar('Loss/train', epoch_loss, epoch)
             except Exception:
                 pass
-        print(f"Epoch {epoch+1}/{epochs} — Loss: {epoch_loss:.6f} — Dropout: {new_p:.3f}")
+
+        # update epoch-level progress description
+        tqdm.write(f"Epoch {epoch+1}/{epochs} — Loss: {epoch_loss:.6f} — Dropout: {new_p:.3f}")
 
     if writer is not None:
         try:
@@ -267,14 +330,97 @@ def main():
     graph.plot(prediction_dates, actual_prices, color='black', label='Actual Prices', linewidth=2)
     graph.plot(prediction_dates_offset, prediction_prices, color='green', label='Predicted Prices (Test Period)', linewidth=2)
     graph.plot(future_dates, future_predictions_prices, color='red', label=f'Future Forecast ({future_day} days)', linewidth=2.5, linestyle='--', marker='o', markersize=4)
+    """
     for x1, y1, x2, y2 in zip(prediction_dates, actual_prices, prediction_dates_offset, prediction_prices):
         graph.plot([x1, x2], [y1, y2], color='gray', linestyle='--', linewidth=0.7, alpha=0.6)
+"""
     graph.axvline(x=last_date, color='orange', linestyle=':', linewidth=2, label='Current Date', alpha=0.7)
     graph.set_title(f'{chart} Price Prediction with {future_day}-Day Forecast')
     graph.set_xlabel('Date')
     graph.legend(loc='upper left')
     graph.grid(True, alpha=0.3)
     fig.autofmt_xdate()
+
+    # Interactive hover annotation showing nearest actual/predicted/future values
+    annotation = graph.annotate(
+        '', xy=(0, 0), xytext=(15, 15), textcoords='offset points',
+        bbox=dict(boxstyle='round', fc='w', alpha=0.9), fontsize=9
+    )
+    annotation.set_visible(False)
+
+    # Precompute numeric date arrays and flattened price arrays for fast nearest-point lookup
+    actual_dnums = mdates.date2num(prediction_dates)
+    pred_dnums = mdates.date2num(prediction_dates_offset)
+    future_dnums = mdates.date2num(future_dates)
+
+    actual_vals = np.array(actual_prices).flatten()
+    pred_vals = prediction_prices.flatten()
+    future_vals = future_predictions_prices.flatten()
+
+    def motion_hover(event):
+        if event.inaxes != graph:
+            if annotation.get_visible():
+                annotation.set_visible(False)
+                fig.canvas.draw_idle()
+            return
+
+        x = event.xdata
+        if x is None:
+            return
+
+        # find nearest points in each series
+        idx_actual = np.argmin(np.abs(actual_dnums - x)) if len(actual_dnums) else None
+        dist_actual = abs(actual_dnums[idx_actual] - x) if idx_actual is not None else np.inf
+
+        idx_pred = np.argmin(np.abs(pred_dnums - x)) if len(pred_dnums) else None
+        dist_pred = abs(pred_dnums[idx_pred] - x) if idx_pred is not None else np.inf
+
+        idx_future = np.argmin(np.abs(future_dnums - x)) if len(future_dnums) else None
+        dist_future = abs(future_dnums[idx_future] - x) if idx_future is not None else np.inf
+
+        # choose nearest among the three series
+        nearest = 'none'
+        if dist_actual <= dist_pred and dist_actual <= dist_future:
+            nearest = 'actual'
+        elif dist_pred <= dist_actual and dist_pred <= dist_future:
+            nearest = 'pred'
+        else:
+            nearest = 'future'
+
+        if nearest == 'actual' and idx_actual is not None:
+            dnum = actual_dnums[idx_actual]
+            date = mdates.num2date(dnum)
+            actual = actual_vals[idx_actual]
+            # find predicted nearest to this actual date (may be offset)
+            pred_idx = np.argmin(np.abs(pred_dnums - dnum)) if len(pred_dnums) else None
+            predicted = pred_vals[pred_idx] if pred_idx is not None else float('nan')
+        elif nearest == 'pred' and idx_pred is not None:
+            dnum = pred_dnums[idx_pred]
+            date = mdates.num2date(dnum)
+            predicted = pred_vals[idx_pred]
+            act_idx = np.argmin(np.abs(actual_dnums - dnum)) if len(actual_dnums) else None
+            actual = actual_vals[act_idx] if act_idx is not None else float('nan')
+        elif nearest == 'future' and idx_future is not None:
+            dnum = future_dnums[idx_future]
+            date = mdates.num2date(dnum)
+            predicted = future_vals[idx_future]
+            actual = float('nan')
+        else:
+            annotation.set_visible(False)
+            fig.canvas.draw_idle()
+            return
+
+        actual_text = f'£{actual:.2f}' if (not np.isnan(actual)) else 'N/A'
+        pred_text = f'£{predicted:.2f}'
+        text = f'{date.strftime("%Y-%m-%d")}\nActual: {actual_text}\nPredicted: {pred_text}'
+
+        # position annotation near cursor
+        annotation.xy = (event.xdata, event.ydata)
+        annotation.set_text(text)
+        annotation.set_visible(True)
+        fig.canvas.draw_idle()
+
+    fig.canvas.mpl_connect("motion_notify_event", motion_hover)
 
     # save outputs
     out_dir = os.getcwd()
@@ -283,6 +429,8 @@ def main():
     forecast_df = pd.DataFrame({'Date': future_dates, 'Predicted_Price': future_predictions_prices.flatten()})
     forecast_df.to_csv(os.path.join(out_dir, 'future_predictions_pytorch.csv'), index=False)
     print('\nSaved:', [f for f in os.listdir(out_dir) if f.endswith(('.png', '.csv'))])
+            
+    
 
     plt.show()
 
