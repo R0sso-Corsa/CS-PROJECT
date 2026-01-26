@@ -82,11 +82,11 @@ def choose_chart_interactive():
 chart = choose_chart_interactive()
 prediction_days = 60
 future_day = 30
-epochs = 20
-batch_size = 1000
+epochs = 5
+batch_size = 10
 initial_dropout = 0.5
 final_dropout = 0.1
-train_time = 1
+train_time = 2
 
 device_type = input("Enter device type (cpu/cuda): ").strip().lower()
 
@@ -161,6 +161,7 @@ def main():
     # figure for plotting
     fig = plt.figure(figsize=(18, 9))
     graph = fig.add_subplot(1, 1, 1)
+    out_dir = os.getcwd()
 
     # determine earliest date available
     ticker = yf.Ticker(chart)
@@ -290,20 +291,74 @@ def main():
     print("Percentage difference:", f"{color_code}{percentage_difference:.2f}%{reset_code}")
 
     # Forecast next N days via rolling prediction
+    # Monte Carlo Dropout forecasting
     real_data = ai_inputs[-prediction_days:, 0].copy()
-    future_predictions = []
-    for day in range(future_day):
-        input_seq = real_data[-prediction_days:].reshape(1, prediction_days, 1)
-        with torch.no_grad():
-            t_in = torch.from_numpy(input_seq).float().to(device)
-            next_pred = model(t_in).cpu().numpy()[0, 0]
-        future_predictions.append(next_pred)
-        real_data = np.append(real_data, next_pred)
-        if (day + 1) % 10 == 0:
-            print(f"Predicted day {day+1}/{future_day}")
 
-    future_predictions = np.array(future_predictions).reshape(-1, 1)
-    future_predictions_prices = scaler.inverse_transform(future_predictions)
+    mc_runs = 20  # use fewer runs for a quick diagnostic; increase later for final results
+
+    def enable_dropout_for_inference(m):
+        for module in m.modules():
+            if isinstance(module, nn.Dropout):
+                module.train()
+
+    # New MC strategy: sample per-day with dropout and use the MEAN scaled prediction
+    # as the input for the next step to avoid stochastic error blow-up.
+    mc_preds_orig = np.zeros((mc_runs, future_day), dtype=np.float32)
+
+    model.eval()
+    current_scaled = real_data.copy()
+    for day in range(future_day):
+        samples_scaled = np.zeros(mc_runs, dtype=np.float32)
+        enable_dropout_for_inference(model)
+        with torch.no_grad():
+            for run in range(mc_runs):
+                input_seq = current_scaled[-prediction_days:].reshape(1, prediction_days, 1)
+                t_in = torch.from_numpy(input_seq).float().to(device)
+                pred_scaled = model(t_in).cpu().numpy()[0, 0]
+                samples_scaled[run] = pred_scaled
+
+        # convert samples to original price scale and store
+        samples_orig = scaler.inverse_transform(samples_scaled.reshape(-1, 1)).flatten()
+        mc_preds_orig[:, day] = samples_orig
+
+        # append the MEAN SCALED prediction to current_scaled for next day's conditioning
+        mean_scaled = float(samples_scaled.mean())
+        current_scaled = np.append(current_scaled, mean_scaled)
+
+        if (day + 1) % 5 == 0 or day == 0:
+            print(f"Completed MC sampling for day {day+1}/{future_day} | mean (orig) ${samples_orig.mean():.2f}")
+
+    # Compute mean, std, and 95% CIs on original scale
+    future_mean = mc_preds_orig.mean(axis=0)
+    future_std = mc_preds_orig.std(axis=0)
+    z = 1.96
+    future_lower = future_mean - z * future_std
+    future_upper = future_mean + z * future_std
+
+    future_predictions_prices = future_mean.reshape(-1, 1)
+
+    # --- Diagnostics: help debug unexpected collapse in forecasts ---
+    try:
+        last_scaled_input = ai_inputs[-1, 0]
+    except Exception:
+        last_scaled_input = None
+
+    first_day_orig = mc_preds_orig[:, 0]
+    print('\nMC diagnostics:')
+    if last_scaled_input is not None:
+        print(f' - Last scaled input value: {last_scaled_input:.6f}')
+    print(f' - First-day prediction (orig) mean: ${first_day_orig.mean():.2f}, std: ${first_day_orig.std():.2f}')
+    print(' - Sample first-day predictions (orig):', np.round(first_day_orig[:10], 2))
+
+    # Save raw MC runs (original scale) for inspection
+    try:
+        mc_df = pd.DataFrame(mc_preds_orig, columns=[f'Day_{i+1}' for i in range(future_day)])
+        mc_df.insert(0, 'run', np.arange(1, mc_runs + 1))
+        mc_csv_path = os.path.join(out_dir, 'mc_raw_predictions.csv')
+        mc_df.to_csv(mc_csv_path, index=False)
+        print(f' - Saved raw MC predictions to: {mc_csv_path}')
+    except Exception as e:
+        print(' - Failed to save raw MC CSV:', e)
 
     last_date = data.index[-1]
     future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=future_day)
@@ -329,7 +384,9 @@ def main():
     # Plotting
     graph.plot(prediction_dates, actual_prices, color='black', label='Actual Prices', linewidth=2)
     graph.plot(prediction_dates_offset, prediction_prices, color='green', label='Predicted Prices (Test Period)', linewidth=2)
-    graph.plot(future_dates, future_predictions_prices, color='red', label=f'Future Forecast ({future_day} days)', linewidth=2.5, linestyle='--', marker='o', markersize=4)
+    graph.plot(future_dates, future_predictions_prices, color='red', label=f'Future Forecast ({future_day} days) Mean', linewidth=2.5, linestyle='--', marker='o', markersize=4)
+    # confidence band
+    graph.fill_between(future_dates, future_lower, future_upper, color='red', alpha=0.2, label='95% CI')
     """
     for x1, y1, x2, y2 in zip(prediction_dates, actual_prices, prediction_dates_offset, prediction_prices):
         graph.plot([x1, x2], [y1, y2], color='gray', linestyle='--', linewidth=0.7, alpha=0.6)
@@ -426,7 +483,12 @@ def main():
     out_dir = os.getcwd()
     present_day = dt.datetime.now().date()
     fig.savefig(os.path.join(out_dir, f"{present_day}.png"), dpi=300, bbox_inches='tight')
-    forecast_df = pd.DataFrame({'Date': future_dates, 'Predicted_Price': future_predictions_prices.flatten()})
+    forecast_df = pd.DataFrame({
+        'Date': future_dates,
+        'Predicted_Price_Mean': future_mean,
+        'Predicted_Price_Lower95': future_lower,
+        'Predicted_Price_Upper95': future_upper
+    })
     forecast_df.to_csv(os.path.join(out_dir, 'future_predictions_pytorch.csv'), index=False)
     print('\nSaved:', [f for f in os.listdir(out_dir) if f.endswith(('.png', '.csv'))])
             

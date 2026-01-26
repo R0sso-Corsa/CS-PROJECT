@@ -1,4 +1,5 @@
 {
-    "python-envs.defaultEnvManager": "ms-python.python:system",
-    "python-envs.pythonProjects": []
+  "python.defaultInterpreterPath": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\.venv_amd\\Scripts\\python.exe",
+  "python-envs.defaultEnvManager": "ms-python.python:system",
+  "python-envs.pythonProjects": []
 }
