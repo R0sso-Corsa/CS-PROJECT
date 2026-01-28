@@ -28,6 +28,9 @@ except Exception:
         SummaryWriter = None
         _TB_BACKEND = None
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_squared_error # Added for RMSE calculation
+import scipy.stats as st # Added for confidence interval calculation
+import math # Added for sqrt in RMSE calculation
 
 
 # ----------------------- Configuration -----------------------
@@ -82,8 +85,8 @@ def choose_chart_interactive():
 chart = choose_chart_interactive()
 prediction_days = 60
 future_day = 30
-epochs = 5
-batch_size = 10
+epochs = 100
+batch_size = 1000
 initial_dropout = 0.5
 final_dropout = 0.1
 train_time = 2
@@ -140,6 +143,12 @@ class LSTMModel(nn.Module):
         return out
 
 
+def set_dropout(model, new_p):
+    for m in model.modules():
+        if isinstance(m, nn.Dropout):
+            m.p = new_p
+
+
 def build_sequences(scaled_values, prediction_days):
     x, y = [], []
     for i in range(prediction_days, len(scaled_values)):
@@ -151,17 +160,10 @@ def build_sequences(scaled_values, prediction_days):
     return x, y
 
 
-def set_dropout(model, new_p):
-    for m in model.modules():
-        if isinstance(m, nn.Dropout):
-            m.p = new_p
-
-
 def main():
     # figure for plotting
     fig = plt.figure(figsize=(18, 9))
     graph = fig.add_subplot(1, 1, 1)
-    out_dir = os.getcwd()
 
     # determine earliest date available
     ticker = yf.Ticker(chart)
@@ -236,12 +238,12 @@ def main():
         epoch_loss /= len(dataset)
         if writer is not None:
             try:
-                writer.add_scalar('Loss/train', epoch_loss, epoch)
+                writer.add_scalar('Loss/train', epoch_loss, epoch, walltime=time.time())
             except Exception:
                 pass
 
         # update epoch-level progress description
-        tqdm.write(f"Epoch {epoch+1}/{epochs} — Loss: {epoch_loss:.6f} — Dropout: {new_p:.3f}")
+        tqdm.write(f"Epoch {epoch+1}/{epochs} \u2014 Loss: {epoch_loss:.6f} \u2014 Dropout: {new_p:.3f}")
 
     if writer is not None:
         try:
@@ -254,7 +256,7 @@ def main():
     if use_earliest_test:
         test_start = start
     else:
-        test_start = dt.datetime(2010, 1, 1)
+        test_start = dt.datetime(2024, 1, 1)
     test_end = dt.datetime.now()
     test_data = yf.download(chart, test_start, test_end)
     actual_prices = test_data['Close'].values
@@ -277,6 +279,12 @@ def main():
         preds = model(xt).cpu().numpy()
 
     prediction_prices = scaler.inverse_transform(preds)
+
+    # Calculate Mean Squared Error (MSE) and Root Mean Squared Error (RMSE)
+    mse = mean_squared_error(actual_prices, prediction_prices)
+    rmse = math.sqrt(mse)
+    print(f"Root Mean Squared Error (RMSE) on test data: {rmse:.2f}")
+
     prediction_dates = test_data.index
     prediction_dates_offset = prediction_dates + pd.Timedelta(days=-1)
 
@@ -290,75 +298,61 @@ def main():
     print(f"Last predicted value: {last_predicted_value:.2f}")
     print("Percentage difference:", f"{color_code}{percentage_difference:.2f}%{reset_code}")
 
-    # Forecast next N days via rolling prediction
-    # Monte Carlo Dropout forecasting
+    # Forecast next N days via rolling prediction with Monte Carlo Dropout
+    print(f"\n{'='*60}")
+    print(f"PREDICTING NEXT {future_day} DAYS WITH MONTE CARLO DROPOUT...")
+    print(f"{'='*60}\n")
+
+    num_monte_carlo_runs = 10 # Number of forward passes for Monte Carlo Dropout
+
     real_data = ai_inputs[-prediction_days:, 0].copy()
+    future_predictions = []
+    future_predictions_std = [] # Initialized future_predictions_std
 
-    mc_runs = 20  # use fewer runs for a quick diagnostic; increase later for final results
-
-    def enable_dropout_for_inference(m):
-        for module in m.modules():
-            if isinstance(module, nn.Dropout):
-                module.train()
-
-    # New MC strategy: sample per-day with dropout and use the MEAN scaled prediction
-    # as the input for the next step to avoid stochastic error blow-up.
-    mc_preds_orig = np.zeros((mc_runs, future_day), dtype=np.float32)
-
-    model.eval()
-    current_scaled = real_data.copy()
     for day in range(future_day):
-        samples_scaled = np.zeros(mc_runs, dtype=np.float32)
-        enable_dropout_for_inference(model)
-        with torch.no_grad():
-            for run in range(mc_runs):
-                input_seq = current_scaled[-prediction_days:].reshape(1, prediction_days, 1)
-                t_in = torch.from_numpy(input_seq).float().to(device)
-                pred_scaled = model(t_in).cpu().numpy()[0, 0]
-                samples_scaled[run] = pred_scaled
+        monte_carlo_predictions_for_day = [] # Initialized monte_carlo_predictions_for_day
+        input_seq = real_data[-prediction_days:].reshape(1, prediction_days, 1)
+        t_in = torch.from_numpy(input_seq).float().to(device)
 
-        # convert samples to original price scale and store
-        samples_orig = scaler.inverse_transform(samples_scaled.reshape(-1, 1)).flatten()
-        mc_preds_orig[:, day] = samples_orig
+        # Enable dropout during inference for Monte Carlo
+        model.train() # Set model to training mode to enable dropout
+        for _ in range(num_monte_carlo_runs):
+            with torch.no_grad(): # Still no_grad for predictions, but dropout is active
+                monte_carlo_predictions_for_day.append(model(t_in).cpu().numpy()[0, 0])
 
-        # append the MEAN SCALED prediction to current_scaled for next day's conditioning
-        mean_scaled = float(samples_scaled.mean())
-        current_scaled = np.append(current_scaled, mean_scaled)
+        # Set model back to evaluation mode after Monte Carlo runs
+        model.eval()
 
-        if (day + 1) % 5 == 0 or day == 0:
-            print(f"Completed MC sampling for day {day+1}/{future_day} | mean (orig) ${samples_orig.mean():.2f}")
+        # Calculate mean and standard deviation of Monte Carlo predictions
+        next_pred = np.mean(monte_carlo_predictions_for_day) # Calculate mean
+        future_predictions_std.append(np.std(monte_carlo_predictions_for_day)) # Calculate std dev
 
-    # Compute mean, std, and 95% CIs on original scale
-    future_mean = mc_preds_orig.mean(axis=0)
-    future_std = mc_preds_orig.std(axis=0)
-    z = 1.96
-    future_lower = future_mean - z * future_std
-    future_upper = future_mean + z * future_std
+        future_predictions.append(next_pred)
+        real_data = np.append(real_data, next_pred)
+        if (day + 1) % 10 == 0:
+            print(f"Predicted day {day+1}/{future_day}")
 
-    future_predictions_prices = future_mean.reshape(-1, 1)
+    future_predictions = np.array(future_predictions).reshape(-1, 1)
+    future_predictions_prices = scaler.inverse_transform(future_predictions)
 
-    # --- Diagnostics: help debug unexpected collapse in forecasts ---
-    try:
-        last_scaled_input = ai_inputs[-1, 0]
-    except Exception:
-        last_scaled_input = None
+    # Calculate confidence intervals
+    # Get the scaling factor for the 'Close' price
+    # This is (max_close - min_close) from the training data
+    # Assuming 'Close' is the only feature (index 0) in the scaler
+    close_min = scaler.data_min_[0]
+    close_max = scaler.data_max_[0]
+    scaling_factor_close = close_max - close_min
 
-    first_day_orig = mc_preds_orig[:, 0]
-    print('\nMC diagnostics:')
-    if last_scaled_input is not None:
-        print(f' - Last scaled input value: {last_scaled_input:.6f}')
-    print(f' - First-day prediction (orig) mean: ${first_day_orig.mean():.2f}, std: ${first_day_orig.std():.2f}')
-    print(' - Sample first-day predictions (orig):', np.round(first_day_orig[:10], 2))
+    # Unscale the standard deviations
+    future_predictions_prices_std_unscaled = np.array(future_predictions_std) * scaling_factor_close
 
-    # Save raw MC runs (original scale) for inspection
-    try:
-        mc_df = pd.DataFrame(mc_preds_orig, columns=[f'Day_{i+1}' for i in range(future_day)])
-        mc_df.insert(0, 'run', np.arange(1, mc_runs + 1))
-        mc_csv_path = os.path.join(out_dir, 'mc_raw_predictions.csv')
-        mc_df.to_csv(mc_csv_path, index=False)
-        print(f' - Saved raw MC predictions to: {mc_csv_path}')
-    except Exception as e:
-        print(' - Failed to save raw MC CSV:', e)
+    confidence_level = 0.95
+    # Calculate the Z-score for the desired confidence level (two-tailed)
+    z_score = st.norm.ppf(1 - (1 - confidence_level) / 2)
+
+    future_predictions_lower = future_predictions_prices.flatten() - z_score * future_predictions_prices_std_unscaled
+    future_predictions_upper = future_predictions_prices.flatten() + z_score * future_predictions_prices_std_unscaled
+
 
     last_date = data.index[-1]
     future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=future_day)
@@ -369,6 +363,11 @@ def main():
     for date, price in zip(future_dates, future_predictions_prices):
         print(f"{date.strftime('%Y-%m-%d')}: ${float(price[0]):.2f}")
     print('='*60 + '\n')
+
+    # Print confidence interval info
+    print(f"Mean Standard Deviation of Monte Carlo predictions (scaled): {np.mean(future_predictions_std):.4f}")
+    print(f"Approximate Average Margin of Error for 95% Confidence Interval (unscaled): {np.mean(z_score * future_predictions_prices_std_unscaled):.2f}\n")
+
 
     current_price = float(data['Close'].values[-1])
     final_predicted_price = float(future_predictions_prices[-1][0])
@@ -384,16 +383,15 @@ def main():
     # Plotting
     graph.plot(prediction_dates, actual_prices, color='black', label='Actual Prices', linewidth=2)
     graph.plot(prediction_dates_offset, prediction_prices, color='green', label='Predicted Prices (Test Period)', linewidth=2)
-    graph.plot(future_dates, future_predictions_prices, color='red', label=f'Future Forecast ({future_day} days) Mean', linewidth=2.5, linestyle='--', marker='o', markersize=4)
-    # confidence band
-    graph.fill_between(future_dates, future_lower, future_upper, color='red', alpha=0.2, label='95% CI')
-    """
-    for x1, y1, x2, y2 in zip(prediction_dates, actual_prices, prediction_dates_offset, prediction_prices):
-        graph.plot([x1, x2], [y1, y2], color='gray', linestyle='--', linewidth=0.7, alpha=0.6)
-"""
+    graph.plot(future_dates, future_predictions_prices, color='red', label=f'Future Forecast ({future_day} days)', linewidth=2.5, linestyle='--', marker='o', markersize=4)
+
+    # Plot confidence intervals
+    graph.fill_between(future_dates, future_predictions_lower, future_predictions_upper, color='purple', alpha=0.2, label='95% Confidence Interval')
+
     graph.axvline(x=last_date, color='orange', linestyle=':', linewidth=2, label='Current Date', alpha=0.7)
-    graph.set_title(f'{chart} Price Prediction with {future_day}-Day Forecast')
+    graph.set_title(f'{chart} Price Prediction with {future_day}-Day Forecast (with Monte Carlo Dropout Confidence)')
     graph.set_xlabel('Date')
+    graph.set_ylabel(f'{chart} Price')
     graph.legend(loc='upper left')
     graph.grid(True, alpha=0.3)
     fig.autofmt_xdate()
@@ -467,8 +465,8 @@ def main():
             fig.canvas.draw_idle()
             return
 
-        actual_text = f'£{actual:.2f}' if (not np.isnan(actual)) else 'N/A'
-        pred_text = f'£{predicted:.2f}'
+        actual_text = f'\u00a3{actual:.2f}' if (not np.isnan(actual)) else 'N/A'
+        pred_text = f'\u00a3{predicted:.2f}'
         text = f'{date.strftime("%Y-%m-%d")}\nActual: {actual_text}\nPredicted: {pred_text}'
 
         # position annotation near cursor
@@ -483,16 +481,11 @@ def main():
     out_dir = os.getcwd()
     present_day = dt.datetime.now().date()
     fig.savefig(os.path.join(out_dir, f"{present_day}.png"), dpi=300, bbox_inches='tight')
-    forecast_df = pd.DataFrame({
-        'Date': future_dates,
-        'Predicted_Price_Mean': future_mean,
-        'Predicted_Price_Lower95': future_lower,
-        'Predicted_Price_Upper95': future_upper
-    })
+    forecast_df = pd.DataFrame({'Date': future_dates, 'Predicted_Price': future_predictions_prices.flatten()})
     forecast_df.to_csv(os.path.join(out_dir, 'future_predictions_pytorch.csv'), index=False)
     print('\nSaved:', [f for f in os.listdir(out_dir) if f.endswith(('.png', '.csv'))])
-            
-    
+
+
 
     plt.show()
 
