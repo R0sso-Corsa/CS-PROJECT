@@ -6,3 +6,4 @@ scikit-learn
 numpy
 # do NOT include tensorflow when using tensorflow/tensorflow:*-gpu base image
 pandas-ta
+mplfinance

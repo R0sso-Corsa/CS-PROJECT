@@ -8,6 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import dates as mdates
 import yfinance as yf
+import mplfinance as mpf
 
 import torch
 import torch.nn as nn
@@ -27,6 +28,7 @@ except Exception:
     except Exception:
         SummaryWriter = None
         _TB_BACKEND = None
+
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error # Added for RMSE calculation
 import scipy.stats as st # Added for confidence interval calculation
@@ -85,7 +87,7 @@ def choose_chart_interactive():
 chart = choose_chart_interactive()
 prediction_days = 60
 future_day = 30
-epochs = 100
+epochs = 20
 batch_size = 1000
 initial_dropout = 0.5
 final_dropout = 0.1
@@ -161,6 +163,7 @@ def build_sequences(scaled_values, prediction_days):
 
 
 def main():
+
     # figure for plotting
     fig = plt.figure(figsize=(18, 9))
     graph = fig.add_subplot(1, 1, 1)
@@ -256,7 +259,7 @@ def main():
     if use_earliest_test:
         test_start = start
     else:
-        test_start = dt.datetime(2024, 1, 1)
+        test_start = dt.datetime(2025, 1, 1)
     test_end = dt.datetime.now()
     test_data = yf.download(chart, test_start, test_end)
     actual_prices = test_data['Close'].values
@@ -273,7 +276,8 @@ def main():
     x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
 
     # predict
-    model.eval()
+    # Use model.train() instead of eval() to keep dropout active for jagged (stochastic) predictions
+    model.train() 
     with torch.no_grad():
         xt = torch.from_numpy(x_test).float().to(device)
         preds = model(xt).cpu().numpy()
@@ -286,7 +290,7 @@ def main():
     print(f"Root Mean Squared Error (RMSE) on test data: {rmse:.2f}")
 
     prediction_dates = test_data.index
-    prediction_dates_offset = prediction_dates + pd.Timedelta(days=-1)
+    prediction_dates_offset = prediction_dates # + pd.Timedelta(days=-1) # Removed offset to align with actual dates
 
     last_actual_value = float(np.asarray(actual_prices[-1]).flatten()[0])
     last_predicted_value = float(np.asarray(prediction_prices[-1]).flatten()[0])
@@ -303,7 +307,7 @@ def main():
     print(f"PREDICTING NEXT {future_day} DAYS WITH MONTE CARLO DROPOUT...")
     print(f"{'='*60}\n")
 
-    num_monte_carlo_runs = 10 # Number of forward passes for Monte Carlo Dropout
+    num_monte_carlo_runs = 50 # Number of forward passes for Monte Carlo Dropout
 
     real_data = ai_inputs[-prediction_days:, 0].copy()
     future_predictions = []
@@ -321,10 +325,15 @@ def main():
                 monte_carlo_predictions_for_day.append(model(t_in).cpu().numpy()[0, 0])
 
         # Set model back to evaluation mode after Monte Carlo runs
-        model.eval()
+        # model.eval() # Keep in train mode for consistency if needed, but the loop resets it
 
-        # Calculate mean and standard deviation of Monte Carlo predictions
-        next_pred = np.mean(monte_carlo_predictions_for_day) # Calculate mean
+        # Calculate mean and standard deviation of Monte Carlo predictions for STATS
+        # next_pred = np.mean(monte_carlo_predictions_for_day) # Calculate mean (Smooth)
+        
+        # USE SINGLE REALIZATION FOR JAGGED TRAJECTORY
+        # We take the first run as the "path" we follow
+        next_pred = monte_carlo_predictions_for_day[0] 
+        
         future_predictions_std.append(np.std(monte_carlo_predictions_for_day)) # Calculate std dev
 
         future_predictions.append(next_pred)
@@ -381,9 +390,21 @@ def main():
     print("Script concluded for a duration of {:.2f} seconds".format(end - script_start_time))
 
     # Plotting
-    graph.plot(prediction_dates, actual_prices, color='black', label='Actual Prices', linewidth=2)
-    graph.plot(prediction_dates_offset, prediction_prices, color='green', label='Predicted Prices (Test Period)', linewidth=2)
-    graph.plot(future_dates, future_predictions_prices, color='red', label=f'Future Forecast ({future_day} days)', linewidth=2.5, linestyle='--', marker='o', markersize=4)
+    # Prepare data for mplfinance
+    # Flatten columns if MultiIndex (common in newer yfinance versions)
+    plot_data = test_data.copy()
+    if isinstance(plot_data.columns, pd.MultiIndex):
+        plot_data.columns = plot_data.columns.get_level_values(0)
+
+    # MPLFinance plotting
+    # We plot on the existing 'graph' method.
+    # Note: style='yahoo' gives standard green/red candles.
+    # show_nontrading=True ensures the x-axis remains linear date-based, matching our other line plots.
+    mpf.plot(plot_data, type='candle', style='yahoo', ax=graph, show_nontrading=True, datetime_format='%Y-%m-%d', ylabel=f'{chart} Price')
+
+    # graph.plot(prediction_dates, actual_prices, color='black', label='Actual Prices', linewidth=2) # Replaced by candlesticks
+    graph.plot(prediction_dates_offset, prediction_prices, color='blue', label='Predicted Prices (Test Period)', linewidth=2) # Changed color to blue for visibility against candles
+    graph.plot(future_dates, future_predictions_prices, color='red', label=f'Future Forecast ({future_day} days)', linewidth=2.5)
 
     # Plot confidence intervals
     graph.fill_between(future_dates, future_predictions_lower, future_predictions_upper, color='purple', alpha=0.2, label='95% Confidence Interval')
@@ -391,10 +412,10 @@ def main():
     graph.axvline(x=last_date, color='orange', linestyle=':', linewidth=2, label='Current Date', alpha=0.7)
     graph.set_title(f'{chart} Price Prediction with {future_day}-Day Forecast (with Monte Carlo Dropout Confidence)')
     graph.set_xlabel('Date')
-    graph.set_ylabel(f'{chart} Price')
+    # graph.set_ylabel(f'{chart} Price') # Handled by mpf
     graph.legend(loc='upper left')
     graph.grid(True, alpha=0.3)
-    fig.autofmt_xdate()
+    # fig.autofmt_xdate() # mpf handles this
 
     # Interactive hover annotation showing nearest actual/predicted/future values
     annotation = graph.annotate(
@@ -408,6 +429,7 @@ def main():
     pred_dnums = mdates.date2num(prediction_dates_offset)
     future_dnums = mdates.date2num(future_dates)
 
+    # For hover, we still valid actual_vals from the data
     actual_vals = np.array(actual_prices).flatten()
     pred_vals = prediction_prices.flatten()
     future_vals = future_predictions_prices.flatten()
