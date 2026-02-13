@@ -306,7 +306,12 @@ def objective(trial, chart, device, scaled_full_data, scaler, features, data_ful
 # Enable verbose output for telemetry
 optuna.logging.set_verbosity(optuna.logging.INFO)
 
-study = optuna.create_study(direction='minimize')
+study = optuna.create_study(
+    study_name="onedrive_optimizer",
+    storage="sqlite:///optuna_study.db",
+    load_if_exists=True,
+    direction='minimize'
+)
 study.optimize(lambda trial: objective(trial, chart, device, scaled_data_full, scaler, features, data_full_processed, test_data_processed, actual_prices_for_test), n_trials=50)
 
 print("Number of finished trials: ", len(study.trials))
