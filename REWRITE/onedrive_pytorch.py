@@ -11,6 +11,7 @@ import seaborn as sns
 import torch
 import torch.nn as nn
 from tqdm.auto import trange, tqdm
+# Disable MIOpen/cuDNN for LSTMs to prevent crash on some ROCm setups
 torch.backends.cudnn.enabled = False
 from torch.utils.data import Dataset, DataLoader
 # TensorBoard writer: prefer torch's bundled SummaryWriter, fall back to tensorboardX, else disable
@@ -34,12 +35,14 @@ import optuna
 
 # ----------------------- Helper Functions (moved outside main for Optuna) -----------------------
 def finder(query: str):
+    # Search for ticker symbol using yfinance; return None if failed
     try:
         return yf.Search(query)
     except Exception:
         return None
 
 def choose_chart_interactive():
+    # Interactively prompt user for ticker symbol; supports search
     while True:
         choice = input("Enter ticker symbol (or enter 's' to search): ").strip()
         if not choice:
@@ -74,23 +77,30 @@ def choose_chart_interactive():
             return choice
 
 def get_dynamic_dropout(epoch, total_epochs, initial_rate=0.5, final_rate=0.1):
+    # Linearly decay dropout rate over epochs
     return max(final_rate, initial_rate - (initial_rate - final_rate) * (epoch / total_epochs))
 
 
 class SequenceDataset(Dataset):
+    # PyTorch Dataset for sequence data
     def __init__(self, sequences, targets):
+        # Initialize dataset with sequences and targets
         self.sequences = sequences
         self.targets = targets
 
     def __len__(self):
+        # Return total number of sequences
         return len(self.sequences)
 
     def __getitem__(self, idx):
+        # Retrieve sequence and target at index
         return torch.from_numpy(self.sequences[idx]).float(), torch.from_numpy(np.array(self.targets[idx])).float()
 
 
 class LSTMModel(nn.Module):
+    # LSTM model with dynamic dropout and final linear layer
     def __init__(self, input_size, hidden_size, num_layers, dropout):
+        # Initialize LSTM layers and fully connected output layer
         super().__init__()
         self.layers = nn.ModuleList()
         in_size = input_size
@@ -101,6 +111,7 @@ class LSTMModel(nn.Module):
         self.fc = nn.Linear(hidden_size, 1)
 
     def forward(self, x):
+        # Forward pass through LSTM layers and final linear layer
         out = x
         for i in range(0, len(self.layers), 2):
             lstm = self.layers[i]
@@ -113,12 +124,14 @@ class LSTMModel(nn.Module):
 
 
 def set_dropout(model, new_p):
+    # Update dropout probability for all Dropout layers
     for m in model.modules():
         if isinstance(m, nn.Dropout):
             m.p = new_p
 
 
 def build_sequences(scaled_values, prediction_days):
+    # Create sliding window sequences
     x, y = [], []
     for i in range(prediction_days, len(scaled_values)):
         x.append(scaled_values[i-prediction_days:i, :])
@@ -128,16 +141,17 @@ def build_sequences(scaled_values, prediction_days):
     return x, y
 
 
-# --- Interactive Configuration (Moved outside objective function) ---
+# --- 1. System Configuration ---
 chart = choose_chart_interactive()
 device_type = input("Enter device type (cpu/cuda): ").strip().lower()
 device = torch.device('cuda' if (device_type == 'cuda' and torch.cuda.is_available()) else 'cpu')
 print(f"Using device: {device}")
 
 
-# --- Data Preprocessing (Moved outside objective function to be done once) ---
+# --- 2. Data Acquisition & Preprocessing ---
 print("\n--- Preprocessing data once for Optuna study ---")
-# Determine earliest date available
+
+# Determine start date based on ticker history
 ticker = yf.Ticker(chart)
 hist_max = ticker.history(period='max')
 if (hist_max is not None) and (not hist_max.empty):
@@ -149,48 +163,58 @@ end = dt.datetime.now()
 # Download full historical data
 data_full_raw = yf.download(chart, start=start, end=end, progress=False)
 
-# Feature Engineering (SMA, RSI) on full historical data
+# Calculate technical indicators (SMA, RSI)
 data_full_processed = data_full_raw.copy()
 data_full_processed['SMA_14'] = data_full_processed['Close'].rolling(window=14).mean()
+
 delta = data_full_processed['Close'].diff(1)
 gain = delta.where(delta > 0, 0)
 loss = -delta.where(delta < 0, 0)
+
 avg_gain = gain.ewm(com=13, adjust=False).mean()
 avg_loss = loss.ewm(com=13, adjust=False).mean()
+
 rs = avg_gain / avg_loss
 data_full_processed['RSI_14'] = 100 - (100 / (1 + rs))
-data_full_processed = data_full_processed.ffill()
-data_full_processed = data_full_processed.bfill()
+
+# Fill missing values
+data_full_processed = data_full_processed.ffill().bfill()
 
 features = ['Close', 'Volume', 'SMA_14', 'RSI_14']
 
-# Initialize and fit scaler on the full historical data
+# Global scaler fitting (Note: scaling on full data before split carries some risk of leakage)
 scaler = MinMaxScaler(feature_range=(0, 1))
 scaler.fit(data_full_processed[features].values)
 scaled_data_full = scaler.transform(data_full_processed[features].values)
 
-# Prepare fixed test data (if test_start is static)
-test_start_fixed = dt.datetime(2025, 1, 1) # A fixed start date for the test set
+# Prepare specific test set (fixed window for study comparison)
+test_start_fixed = dt.datetime(2025, 1, 1)
 test_data_raw = yf.download(chart, test_start_fixed, end, progress=False)
 
-# Feature Engineering (SMA, RSI) on test data
+# Re-calculate indicators for test set independently
 test_data_processed = test_data_raw.copy()
 test_data_processed['SMA_14'] = test_data_processed['Close'].rolling(window=14).mean()
+
 delta_test = test_data_processed['Close'].diff(1)
 gain_test = delta_test.where(delta_test > 0, 0)
 loss_test = -delta_test.where(delta_test < 0, 0)
+
 avg_gain_test = gain_test.ewm(com=13, adjust=False).mean()
 avg_loss_test = loss_test.ewm(com=13, adjust=False).mean()
+
 rs_test = avg_gain_test / avg_loss_test
 test_data_processed['RSI_14'] = 100 - (100 / (1 + rs_test))
+
 test_data_processed = test_data_processed.ffill()
 test_data_processed = test_data_processed.bfill()
+
 actual_prices_for_test = test_data_processed['Close'].values # Keep original prices for RMSE
 
 
-# --- Objective Function for Optuna ---
+# --- 3. Optimization Objective ---
 def objective(trial, chart, device, scaled_full_data, scaler, features, data_full_processed, test_data_processed, actual_prices_for_test):
-    # Hyperparameters to tune
+    # Optuna objective function; trains model and returns RMSE for a given trial
+    # Hyperparameters
     prediction_days = trial.suggest_int('prediction_days', 30, 120, step=30)
     epochs = trial.suggest_int('epochs', 20, 100, step=20)
     batch_size = trial.suggest_categorical('batch_size', [16, 32, 64, 128])
@@ -198,40 +222,20 @@ def objective(trial, chart, device, scaled_full_data, scaler, features, data_ful
     num_layers = trial.suggest_int('num_layers', 2, 6, step=2)
     initial_dropout = trial.suggest_float('initial_dropout', 0.2, 0.5, step=0.1)
     final_dropout = trial.suggest_float('final_dropout', 0.05, 0.2, step=0.05)
-
+    
     input_size = len(features)
 
-    # Training data preparation (uses pre-scaled data)
-    # The training data needs to end before the test period starts (implicitly)
-    # The current scaled_full_data goes up to 'end' (current_date)
-    # test_data_processed starts from test_start_fixed.
-    # To avoid data leakage, we should train only on data *before* test_start_fixed.
-    # So, scale_full_data should be sliced to exclude the test period.
-
-    # Find the index where the test_data_processed begins in the full historical data
-    # Assuming chronological order, the training data would be everything before test_start_fixed
-    # Need to be careful with overlapping dates if test_data_processed is not strictly after data_full_processed
-    # For now, let's assume `data_full_processed` covers everything up to `end`, and `test_data_processed` is a contiguous block
-    # from `test_start_fixed` to `end`.
-    # Let's adjust `scaled_full_data` to truly be "training" data for the objective.
-    # This might require re-thinking `scaled_full_data` creation slightly if the split isn't clean.
-
-    # Simpler: The `scaled_full_data` contains data up to `end`. `test_data_processed` is also up to `end`.
-    # `x_train` should be built from `scaled_full_data` up to `test_start_fixed`.
-    # This requires passing the index of `test_start_fixed` in `scaled_full_data`.
-
-    # Calculate index to split full historical data into training and validation sets
-    # The test period used for evaluation in the objective is dt.datetime(2025, 1, 1) onwards.
-    # So, training data should be up to dt.datetime(2025, 1, 1) - 1 day.
-    # Get the index corresponding to test_start_fixed
+    # --- Training Data Preparation ---
+    # Train on data strictly before test period (2025-01-01) to avoid leakage
     training_end_date = test_start_fixed - dt.timedelta(days=1)
-    # Find the last date in data_full_processed that is before test_start_fixed
+    
+    # Slice the full dataset up to the training end date
     if training_end_date in data_full_processed.index:
-      training_data_slice = data_full_processed.loc[:training_end_date]
-    else: # If exact date not found, take all up to that date
-      training_data_slice = data_full_processed[data_full_processed.index < test_start_fixed]
+        training_data_slice = data_full_processed.loc[:training_end_date]
+    else:
+        training_data_slice = data_full_processed[data_full_processed.index < test_start_fixed]
 
-    # Scale this training_data_slice using the globally fitted scaler
+    # Scale using the global scaler
     scaled_training_data_for_trial = scaler.transform(training_data_slice[features].values)
 
     x_train, y_train = build_sequences(scaled_training_data_for_trial, prediction_days)
@@ -262,23 +266,11 @@ def objective(trial, chart, device, scaled_full_data, scaler, features, data_ful
         epoch_loss /= len(dataset)
         t.set_postfix({'loss': epoch_loss})
 
-    # Test data preparation for prediction and RMSE calculation
-    # `total_dataset_for_ai_inputs` needs to include data *before* the test_start_fixed
-    # to form the `prediction_days` sequences for the first test prediction.
-    # This means concatenating a tail of the training data with the test data.
-    # Let's use the pre-processed `data_full_processed` and `test_data_processed` for this.
-
-    # Take the tail of `data_full_processed` that precedes `test_data_processed`
-    # and has sufficient length for `prediction_days`.
-    # This concatenation is correct but operates on unscaled data, which is then scaled by the global scaler.
+    # --- Test Data Preparation ---
+    # Prep inputs for test period by prepending train data tail (for history window)
     total_dataset_for_ai_inputs = pd.concat((data_full_processed[features], test_data_processed[features]), axis=0)
-
-    # `ai_inputs` represents the sliding window inputs for the test period.
-    # It needs `prediction_days` history before `test_data_processed` begins.
-    # The `total_dataset_for_ai_inputs` now correctly combines these.
-    # We then slice from `total_dataset_for_ai_inputs` to get the relevant portion for `ai_inputs`.
-    # The slice starts `len(test_data_processed) + prediction_days` entries from the end of `total_dataset_for_ai_inputs`.
-    # This `ai_inputs_raw_slice` contains both the necessary historical context and the test period features.
+    
+    # Slice to get exactly [test_start - prediction_days, end]
     ai_inputs_raw_slice = total_dataset_for_ai_inputs[len(total_dataset_for_ai_inputs) - len(test_data_processed) - prediction_days:].values
     ai_inputs = scaler.transform(ai_inputs_raw_slice)
 
@@ -312,13 +304,17 @@ study = optuna.create_study(
     load_if_exists=True,
     direction='minimize'
 )
-study.optimize(lambda trial: objective(trial, chart, device, scaled_data_full, scaler, features, data_full_processed, test_data_processed, actual_prices_for_test), n_trials=50)
+
+study.optimize(lambda trial: objective(trial, chart, device, scaled_data_full, scaler, features, data_full_processed, test_data_processed, actual_prices_for_test), n_trials=20)
 
 print("Number of finished trials: ", len(study.trials))
 print("Best trial:")
+
 trial = study.best_trial
+
 print("  Value: ", trial.value)
 print("  Params: ")
+
 for key, value in trial.params.items():
     print("    {}: {}".format(key, value))
 
