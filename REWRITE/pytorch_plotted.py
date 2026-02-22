@@ -730,5 +730,35 @@ def main():
     plt.show()
 
 
+# ==============================================================================
+# IMPORTANT VARIABLES EXPLANATION
+# ==============================================================================
+# chart: The ticker symbol selected for analysis and prediction (e.g., AAPL).
+# prediction_days: The lookback window (number of past days) used as sequence input to predict the next day.
+# future_day: The number of days into the future that the model will explicitly forecast.
+# epochs: The total number of complete passes through the training dataset.
+# batch_size: The number of sequence samples processed together in one iteration.
+# initial_dropout / final_dropout: Dynamic dropout probabilities. They decay over epochs to reduce regularization as the model learns.
+# data / test_data: Pandas DataFrames containing the historical stock data alongside computed features (SMA_14, RSI_14).
+# scaler: The MinMaxScaler used to map all features to the [0, 1] range for neural network stability.
+# model: The PyTorch Bidirectional LSTM (Long Short-Term Memory) neural network.
+# num_monte_carlo_runs: Number of stochastic forward inference passes (with dropout enabled) to estimate prediction uncertainty.
+# future_predictions_prices: The model's forecasted stock prices for the next `future_day` days (inverse-transformed to standard currency).
+# future_predictions_lower / future_predictions_upper: The bounds establishing the 95% confidence interval for the predictions.
+#
+# OBSCURE / INTERNAL VARIABLES:
+# script_start_time: Stores the exact timestamp when execution begins to calculate total runtime at the end.
+# _TB_BACKEND: A string flag ("torch", "tensorboardX", or None) that determines which logging backend is used for TensorBoard metrics.
+# device: The PyTorch executing device (e.g., CPU, or CUDA for GPU acceleration).
+# criterion / optimizer: The loss function (MSELoss) and optimization algorithm (Adam) used during neural network training.
+# writer: The TensorBoard SummaryWriter instance used to log training loss and the computation graph.
+# dummy_features / dummy_features_test: Zero-filled numpy arrays used to pad predictions to 4 dimensions, satisfying the inverse scaler's requirements.
+# scaling_factor_close: The absolute range (max - min) of "Close" prices from training data, used to accurately unscale confidence interval deviations.
+# z_score: The critical number representing standard deviations under a Normal curve for the 95% confidence interval bounds.
+# annotation / motion_hover: Matplotlib attributes ensuring the interactive GUI annotation tracks and reports the nearest X/Y chart components upon hovering.
+# actual_dnums / pred_dnums / future_dnums: Matplotlib arrays encoding datetime axes sequentially as float scalars for lightning-fast nearest-point calculations on hover.
+# forecast_df: The final Pandas DataFrame constructed to easily serialize predictions into a generated CSV report.
+# ==============================================================================
+
 if __name__ == "__main__":
     main()
