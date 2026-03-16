@@ -1,4 +1,5 @@
 import time
+import sys
 
 script_start_time = time.time()
 
@@ -37,12 +38,41 @@ except Exception:
         _TB_BACKEND = None
 
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.metrics import mean_squared_error  # Added for RMSE calculation
+from sklearn.metrics import (
+    mean_squared_error,
+    mean_absolute_error,
+)  # Added mean_absolute_error
 import scipy.stats as st  # Added for confidence interval calculation
 import math  # Added for sqrt in RMSE calculation
 
 
 # ----------------------- Configuration -----------------------
+
+import sys
+import datetime
+
+
+class TeeLogger:
+    def __init__(self, filename):
+        self.terminal = sys.stdout
+        self.log = open(filename, "a", encoding="utf-8")
+
+    def write(self, message):
+        # Adds a timestamp only to the start of new lines in the log file
+        if message.strip():
+            timestamp = datetime.datetime.now().strftime("[%Y-%m-%d %H:%M:%S] ")
+            self.log.write(timestamp + message + "\n")
+        else:
+            self.log.write(message)
+
+        self.terminal.write(message)
+        self.log.flush()  # Writes to disk immediately
+
+    def flush(self):
+        self.terminal.flush()
+        self.log.flush()
+
+
 def finder(query: str):
     """Search for symbols matching `query` using yfinance and return the Search response."""
     try:
@@ -63,7 +93,7 @@ def choose_chart_interactive():
         if choice.lower() == "s":
             query = input("Search query (company name or ticker fragment): ").strip()
             if not query:
-                print("Empty query; try again.")
+                print("Empty query; try again.\n")
                 continue
             results = finder(query)
             if results and getattr(results, "quotes", None):
@@ -96,13 +126,14 @@ def choose_chart_interactive():
 
 # ask user for chart symbol (interactive search available)
 chart = choose_chart_interactive()
-prediction_days = 60  # MODIFIED: Changed prediction_days to 90
+prediction_days = 30  # MODIFIED: Changed prediction_days to 90
 future_day = 30
 epochs = 40  # MODIFIED: Increased epochs to 100
 batch_size = 32  # MODIFIED: Changed batch_size
 initial_dropout = 0.4
 final_dropout = 0.1
 train_time = 2
+num_monte_carlo_runs = 100  # Number of forward passes for Monte Carlo Dropout
 
 device_type = input("Enter device type (cpu/cuda): ").strip().lower()
 
@@ -110,6 +141,20 @@ device = torch.device(
     "cuda" if (device_type == "cuda" and torch.cuda.is_available()) else "cpu"
 )
 print(f"Using device: {device}")
+
+os.environ["DNNL_VERBOSE"] = "2"  # 0 = off, 1 = summary, 2 = detailed
+os.environ["CUDNN_LOGINFO_DBG"] = "1"
+os.environ["CUDNN_LOGDEST_DBG"] = "stdout"
+os.environ["PYTORCH_JIT_LOG_LEVEL"] = ">>"
+os.environ["PYTORCH_JIT_LOGS"] = "all"
+
+torch._logging.set_logs(
+    graph_breaks=True,  # Modified from 20 to True
+    recompiles=True,  # Modified from 20 to True
+    dynamo=20,
+    inductor=20,
+)
+
 
 # ----------------------- End Configuration -----------------------
 
@@ -136,9 +181,7 @@ class SequenceDataset(Dataset):
 
 
 class LSTMModel(nn.Module):
-    def __init__(
-        self, input_size=4, hidden_size=500, num_layers=2, dropout=0.5
-    ):  # MODIFIED input_size
+    def __init__(self, input_size=4, hidden_size=500, num_layers=2, dropout=0.5):
         super().__init__()
         self.layers = nn.ModuleList()
         in_size = input_size
@@ -196,7 +239,12 @@ def build_sequences(scaled_values, prediction_days):
     return x, y
 
 
+sys.stdout = TeeLogger("terminal_activity.log")
+sys.stderr = sys.stdout  # This captures the Traceback/Errors too!
+
+
 def main():
+
     # Apply dark theme for improved aesthetics
     plt.style.use("dark_background")
 
@@ -213,7 +261,15 @@ def main():
         start = dt.datetime(2017, 1, 1)
 
     end = dt.datetime.now()
-    data = yf.download(chart, start=start, end=end)
+    data = yf.download(chart, start=start, end=end, auto_adjust=True)
+
+    # Handle case where yfinance returns insufficient data
+    if data.empty:
+        print(
+            f"ERROR: No historical data found for {chart}. Please try a different ticker."
+        )
+        return
+
     print(data.head())
 
     # 1. Calculate the 14-day Simple Moving Average (SMA)
@@ -236,20 +292,53 @@ def main():
     rs = avg_gain / avg_loss
     data["RSI_14"] = 100 - (100 / (1 + rs))
 
-    # 3. Fill any NaN values that result from SMA and RSI calculations
+    # 3. Calculate MACD
+    exp1 = data["Close"].ewm(span=12, adjust=False).mean()
+    exp2 = data["Close"].ewm(span=26, adjust=False).mean()
+    data["MACD"] = exp1 - exp2
+    data["Signal_Line"] = data["MACD"].ewm(span=9, adjust=False).mean()
+
+    # 4. Calculate Bollinger Bands
+    data["20_SMA"] = data["Close"].rolling(window=20).mean()
+    data["Std_Dev"] = data["Close"].rolling(window=20).std()
+    data["Upper_BB"] = data["20_SMA"] + (data["Std_Dev"] * 2)
+    data["Lower_BB"] = data["20_SMA"] - (data["Std_Dev"] * 2)
+
+    # 5. Fill any NaN values that result from SMA and RSI calculations
     # Fill forward then backward to handle NaNs at the beginning and end
     data.ffill(inplace=True)
     data.bfill(inplace=True)
 
     scaler = MinMaxScaler(feature_range=(0, 1))
-    # MODIFIED: scaled_data now includes 'Close', 'Volume', 'SMA_14', 'RSI_14'
+    # MODIFIED: scaled_data now includes 'Close', 'Volume', 'SMA_14', 'RSI_14', 'MACD', 'Signal_Line', 'Upper_BB', 'Lower_BB'
     scaled_data = scaler.fit_transform(
-        data[["Close", "Volume", "SMA_14", "RSI_14"]].values
+        data[
+            [
+                "Close",
+                "Volume",
+                "SMA_14",
+                "RSI_14",
+                "MACD",
+                "Signal_Line",
+                "Upper_BB",
+                "Lower_BB",
+            ]
+        ].values
     )
 
     # prepare training data (exclude last prediction_days to avoid incomplete windows)
     training_data = scaled_data[:-prediction_days]
     x_train, y_train = build_sequences(training_data, prediction_days)
+
+    # Check if x_train is empty
+    if len(x_train) == 0:
+        print(
+            f"ERROR: Insufficient data to create training sequences. Only {len(training_data)} data points available after feature engineering, but {prediction_days} prediction days are required."
+        )
+        print(
+            "Please choose a ticker with more historical data or reduce 'prediction_days'."
+        )
+        return
 
     dataset = SequenceDataset(x_train, y_train)
     dataloader = DataLoader(
@@ -259,7 +348,7 @@ def main():
     )
 
     model = LSTMModel(
-        input_size=4, hidden_size=500, num_layers=4, dropout=initial_dropout
+        input_size=8, hidden_size=500, num_layers=4, dropout=initial_dropout
     ).to(
         device
     )  # MODIFIED input_size
@@ -283,7 +372,7 @@ def main():
     if writer is not None:
         try:
             sample_input = torch.zeros(
-                (1, prediction_days, 4), device=device
+                (1, prediction_days, 8), device=device
             )  # MODIFIED input_size for graph
             writer.add_graph(model, sample_input)
         except Exception:
@@ -325,7 +414,7 @@ def main():
 
         # update epoch-level progress description
         tqdm.write(
-            f"Epoch {epoch+1}/{epochs} \u2014 Loss: {epoch_loss:.6f} \u2014 Dropout: {new_p:.3f}"
+            f"Epoch {epoch+1}/{epochs} — Loss: {epoch_loss:.6f} — Dropout: {new_p:.3f}"
         )
 
     if writer is not None:
@@ -339,9 +428,16 @@ def main():
     if use_earliest_test:
         test_start = start
     else:
-        test_start = dt.datetime(2025, 1, 1)  # MODIFIED: Reverted test_start
+        test_start = dt.datetime(2025, 6, 1)  # MODIFIED: Reverted test_start
     test_end = dt.datetime.now()
-    test_data = yf.download(chart, test_start, test_end)
+    test_data = yf.download(chart, test_start, test_end, auto_adjust=True)
+
+    # Handle case where yfinance returns insufficient data for test period
+    if test_data.empty:
+        print(
+            f"ERROR: No historical data found for {chart} in the test period. Please try a different ticker or adjust the test_start date."
+        )
+        return
 
     # Calculate SMA and RSI for test_data as well
     test_data["SMA_14"] = test_data["Close"].rolling(window=14).mean()
@@ -352,16 +448,51 @@ def main():
     avg_loss_test = loss_test.ewm(com=13, adjust=False).mean()
     rs_test = avg_gain_test / avg_loss_test
     test_data["RSI_14"] = 100 - (100 / (1 + rs_test))
+
+    # Calculate MACD for test_data
+    exp1_test = test_data["Close"].ewm(span=12, adjust=False).mean()
+    exp2_test = test_data["Close"].ewm(span=26, adjust=False).mean()
+    test_data["MACD"] = exp1_test - exp2_test
+    test_data["Signal_Line"] = test_data["MACD"].ewm(span=9, adjust=False).mean()
+
+    # Calculate Bollinger Bands for test_data
+    test_data["20_SMA"] = test_data["Close"].rolling(window=20).mean()
+    test_data["Std_Dev"] = test_data["Close"].rolling(window=20).std()
+    test_data["Upper_BB"] = test_data["20_SMA"] + (test_data["Std_Dev"] * 2)
+    test_data["Lower_BB"] = test_data["20_SMA"] - (test_data["Std_Dev"] * 2)
+
     test_data.ffill(inplace=True)
     test_data.bfill(inplace=True)
 
     actual_prices = test_data["Close"].values
 
-    # MODIFIED: total_dataset now includes 'Close', 'Volume', 'SMA_14', 'RSI_14'
+    # MODIFIED: total_dataset now includes 'Close', 'Volume', 'SMA_14', 'RSI_14', 'MACD', 'Signal_Line', 'Upper_BB', 'Lower_BB'
     total_dataset = pd.concat(
         (
-            data[["Close", "Volume", "SMA_14", "RSI_14"]],
-            test_data[["Close", "Volume", "SMA_14", "RSI_14"]],
+            data[
+                [
+                    "Close",
+                    "Volume",
+                    "SMA_14",
+                    "RSI_14",
+                    "MACD",
+                    "Signal_Line",
+                    "Upper_BB",
+                    "Lower_BB",
+                ]
+            ],
+            test_data[
+                [
+                    "Close",
+                    "Volume",
+                    "SMA_14",
+                    "RSI_14",
+                    "MACD",
+                    "Signal_Line",
+                    "Upper_BB",
+                    "Lower_BB",
+                ]
+            ],
         ),
         axis=0,
     )
@@ -379,8 +510,18 @@ def main():
         )  # MODIFIED to include all features
     x_test = np.array(x_test)
     x_test = np.reshape(
-        x_test, (x_test.shape[0], x_test.shape[1], 4)
+        x_test, (x_test.shape[0], x_test.shape[1], 8)
     )  # MODIFIED to 4 features
+
+    # Check if x_test is empty
+    if len(x_test) == 0:
+        print(
+            f"ERROR: Insufficient data to create test sequences. Only {len(ai_inputs)} data points available for testing, but {prediction_days} prediction days are required."
+        )
+        print(
+            "Please ensure sufficient historical data is available for the test period or reduce 'prediction_days'."
+        )
+        return
 
     # predict
     # Use model.train() instead of eval() to keep dropout active for jagged (stochastic) predictions
@@ -391,7 +532,7 @@ def main():
 
     # Inverse transform predictions. Need to create a dummy array for the additional features (Volume, SMA_14, RSI_14).
     dummy_features_test = np.zeros_like(
-        preds, shape=(preds.shape[0], 3)
+        preds, shape=(preds.shape[0], 7)
     )  # 3 dummy features for Volume, SMA, RSI
     full_preds_scaled = np.concatenate((preds, dummy_features_test), axis=1)
     prediction_prices = scaler.inverse_transform(full_preds_scaled)[:, 0].reshape(-1, 1)
@@ -400,6 +541,49 @@ def main():
     mse = mean_squared_error(actual_prices, prediction_prices)
     rmse = math.sqrt(mse)
     print(f"Root Mean Squared Error (RMSE) on test data: {rmse:.2f}")
+
+    # Calculate Mean Absolute Error (MAE)
+    mae = mean_absolute_error(actual_prices, prediction_prices)
+    print(f"Mean Absolute Error (MAE) on test data: {mae:.2f}")
+
+    # Calculate Directional Accuracy
+    actual_changes = np.diff(
+        actual_prices.flatten()
+    )  # Flatten actual_prices before diff
+
+    predicted_prices_flat = prediction_prices.flatten()
+    predicted_changes = np.diff(predicted_prices_flat)
+
+    # Ensure both arrays are of the same length after diff
+    min_len = min(len(actual_changes), len(predicted_changes))
+    actual_changes = actual_changes[:min_len]
+    predicted_changes = predicted_changes[:min_len]
+
+    directional_accuracy = np.nan  # Default to NaN if calculation is skipped
+
+    if len(actual_changes) > 0 and len(predicted_changes) > 0:
+        # Check if arrays are indeed 1D before comparison
+        if np.sign(actual_changes).ndim == 1 and np.sign(predicted_changes).ndim == 1:
+            correct_directions = np.sum(
+                np.sign(actual_changes) == np.sign(predicted_changes)
+            )
+            directional_accuracy = (correct_directions / len(actual_changes)) * 100
+        else:
+            print(
+                "WARNING: np.sign resulted in non-1D arrays for directional accuracy calculation."
+            )
+            print(
+                f"DEBUG: np.sign(actual_changes).ndim: {np.sign(actual_changes).ndim}"
+            )
+            print(
+                f"DEBUG: np.sign(predicted_changes).ndim: {np.sign(predicted_changes).ndim}"
+            )
+    else:
+        print(
+            "WARNING: Insufficient data to calculate directional accuracy (actual_changes or predicted_changes is empty)."
+        )
+
+    print(f"Directional Accuracy on test data: {directional_accuracy:.2f}%")
 
     prediction_dates = test_data.index
     prediction_dates_offset = prediction_dates  # + pd.Timedelta(days=-1) # Removed offset to align with actual dates
@@ -424,8 +608,6 @@ def main():
     print(f"PREDICTING NEXT {future_day} DAYS WITH MONTE CARLO DROPOUT...")
     print(f"{'='*60}\n")
 
-    num_monte_carlo_runs = 50  # Number of forward passes for Monte Carlo Dropout
-
     # Get the last prediction_days of scaled data including all features
     real_data = ai_inputs[-prediction_days:, :].copy()  # MODIFIED to copy all features
     future_predictions = []
@@ -436,13 +618,17 @@ def main():
     last_actual_scaled_volume = ai_inputs[-1, 1]
     last_actual_scaled_sma = ai_inputs[-1, 2]
     last_actual_scaled_rsi = ai_inputs[-1, 3]
+    last_actual_scaled_macd = ai_inputs[-1, 4]
+    last_actual_scaled_signal_line = ai_inputs[-1, 5]
+    last_actual_scaled_upper_bb = ai_inputs[-1, 6]
+    last_actual_scaled_lower_bb = ai_inputs[-1, 7]
 
     for day in range(future_day):
         monte_carlo_predictions_for_day = (
             []
         )  # Initialized monte_carlo_predictions_for_day
         input_seq = real_data[-prediction_days:].reshape(
-            1, prediction_days, 4
+            1, prediction_days, 8
         )  # MODIFIED to 4 features
         t_in = torch.from_numpy(input_seq).float().to(device)
 
@@ -456,11 +642,13 @@ def main():
         model.eval()
 
         # Calculate mean and standard deviation of Monte Carlo predictions for STATS
-        next_pred = np.mean(monte_carlo_predictions_for_day)  # Calculate mean (Smooth)
+        # next_pred = np.mean(monte_carlo_predictions_for_day) # Calculate mean (Smooth)
 
-        # # USE SINGLE REALIZATION FOR JAGGED TRAJECTORY
-        # # We take the first run as the "path" we follow
-        # next_pred = monte_carlo_predictions_for_day[0]
+        # USE SINGLE REALIZATION FOR JAGGED TRAJECTORY
+        # We take the first run as the "path" we follow
+        next_pred = monte_carlo_predictions_for_day[
+            0
+        ]  # MODIFIED to use single realization
 
         future_predictions_std.append(
             np.std(monte_carlo_predictions_for_day)
@@ -474,6 +662,10 @@ def main():
                 last_actual_scaled_volume,
                 last_actual_scaled_sma,
                 last_actual_scaled_rsi,
+                last_actual_scaled_macd,
+                last_actual_scaled_signal_line,
+                last_actual_scaled_upper_bb,
+                last_actual_scaled_lower_bb,
             ]
         )  # MODIFIED to use all fixed features
         real_data = np.vstack((real_data, new_row))
@@ -485,7 +677,7 @@ def main():
     future_predictions = np.array(future_predictions).reshape(-1, 1)
     # Inverse transform. Need to create dummy arrays for the additional features (Volume, SMA_14, RSI_14).
     dummy_features = np.zeros_like(
-        future_predictions, shape=(future_predictions.shape[0], 3)
+        future_predictions, shape=(future_predictions.shape[0], 7)
     )  # 3 dummy features
     full_future_predictions_scaled = np.concatenate(
         (future_predictions, dummy_features), axis=1
@@ -540,7 +732,8 @@ def main():
         f"Approximate Average Margin of Error for 95% Confidence Interval (unscaled): {np.mean(z_score * future_predictions_prices_std_unscaled):.2f}\n"
     )
 
-    current_price = float(data["Close"].values[-1])
+    # --------------------------------------------------------------current_price = float(data["Close"].values[-1])
+    current_price = float(data["Close"].values[-1].item())
     final_predicted_price = float(future_predictions_prices[-1][0])
     projected_change = ((final_predicted_price - current_price) / current_price) * 100
     change_color = "\033[92m" if projected_change >= 0 else "\033[91m"
@@ -563,13 +756,13 @@ def main():
         plot_data.columns = plot_data.columns.get_level_values(0)
 
     # MPLFinance plotting
-    # We plot on the existing 'graph' method. The graph object passed to mpf.plot means this will draw on top of it. mpf can draw it's own figures with `figscale` and `style` parameters. If you don't use a ax you should set it to true so the graph is displayed.
+    # We plot on the existing 'graph' method. The graph object passed to mpf.plot means this will draw on top of it. mpf can draw it's own figures with `figscale` and `style` parameters. If you don't use a ax you should set it to true so the graph is displayed.k
     # Note: style='yahoo' gives standard green/red candles.
     # show_nontrading=True ensures the x-axis remains linear date-based, matching our other line plots.
     mpf.plot(
         plot_data,
         type="candle",
-        style="nightclouds",
+        style="yahoo",
         ax=graph,
         show_nontrading=True,
         datetime_format="%Y-%m-%d",
@@ -667,12 +860,24 @@ def main():
 
         # choose nearest among the three series
         nearest = "none"
-        if dist_actual <= dist_pred and dist_actual <= dist_future:
+        if (
+            idx_actual is not None
+            and dist_actual <= dist_pred
+            and dist_actual <= dist_future
+        ):
             nearest = "actual"
-        elif dist_pred <= dist_actual and dist_pred <= dist_future:
+        elif (
+            idx_pred is not None
+            and dist_pred <= dist_actual
+            and dist_pred <= dist_future
+        ):
             nearest = "pred"
-        else:
+        elif idx_future is not None:
             nearest = "future"
+        else:
+            annotation.set_visible(False)
+            fig.canvas.draw_idle()
+            return
 
         if nearest == "actual" and idx_actual is not None:
             dnum = actual_dnums[idx_actual]
@@ -686,9 +891,15 @@ def main():
             date = mdates.num2date(dnum)
             predicted = pred_vals[idx_pred]
             act_idx = (
-                np.argmin(np.abs(actual_dnums - dnum)) if len(actual_dnums) else None
+                np.argmin(np.abs(actual_dnums - dnum))
+                if len(actual_dnums)
+                else float("nan")
             )
-            actual = actual_vals[act_idx] if act_idx is not None else float("nan")
+            actual = (
+                actual_vals[act_idx]
+                if not np.isnan(act_idx) and act_idx is not None
+                else float("nan")
+            )
         elif nearest == "future" and idx_future is not None:
             dnum = future_dnums[idx_future]
             date = mdates.num2date(dnum)
@@ -699,10 +910,8 @@ def main():
             fig.canvas.draw_idle()
             return
 
-        actual_text = (
-            f"${actual:.2f}" if (not np.isnan(actual)) else "N/A"
-        )  # MODIFIED: Changed to $
-        pred_text = f"${predicted:.2f}"  # MODIFIED: Changed to $
+        actual_text = f"${actual:.2f}" if (not np.isnan(actual)) else "N/A"
+        pred_text = f"${predicted:.2f}"
         text = f'{date.strftime("%Y-%m-%d")}\nActual: {actual_text}\nPredicted: {pred_text}'
 
         # position annotation near cursor
@@ -717,7 +926,9 @@ def main():
     out_dir = os.getcwd()
     present_day = dt.datetime.now().date()
     fig.savefig(
-        os.path.join(out_dir, f"{present_day}.png"), dpi=300, bbox_inches="tight"
+        os.path.join(out_dir, f"{chart}_{present_day}.png"),
+        dpi=300,
+        bbox_inches="tight",
     )
     forecast_df = pd.DataFrame(
         {"Date": future_dates, "Predicted_Price": future_predictions_prices.flatten()}
