@@ -72,6 +72,9 @@ class TeeLogger:
         self.terminal.flush()
         self.log.flush()
 
+    def isatty(self):
+        return getattr(self.terminal, "isatty", lambda: False)()
+
 
 def finder(query: str):
     """Search for symbols matching `query` using yfinance and return the Search response."""
@@ -126,7 +129,8 @@ def choose_chart_interactive():
 
 # ask user for chart symbol (interactive search available)
 chart = choose_chart_interactive()
-prediction_days = 30  # MODIFIED: Changed prediction_days to 90
+chart_info = yf.Ticker(chart).info
+prediction_days = 365  # MODIFIED: Changed prediction_days to 90
 future_day = 30
 epochs = 40  # MODIFIED: Increased epochs to 100
 batch_size = 32  # MODIFIED: Changed batch_size
@@ -140,7 +144,12 @@ device_type = input("Enter device type (cpu/cuda): ").strip().lower()
 device = torch.device(
     "cuda" if (device_type == "cuda" and torch.cuda.is_available()) else "cpu"
 )
+
 print(f"Using device: {device}")
+
+
+chart_name_plot = chart_info.get("longName") or chart
+chart_name_plot1 = chart_info.get("shortName") or chart
 
 os.environ["DNNL_VERBOSE"] = "2"  # 0 = off, 1 = summary, 2 = detailed
 os.environ["CUDNN_LOGINFO_DBG"] = "1"
@@ -244,6 +253,12 @@ sys.stderr = sys.stdout  # This captures the Traceback/Errors too!
 
 
 def main():
+
+    print(f"\n{'='*60}")
+    print(f"ANALYZING: {chart_name_plot} ({chart})")
+    print(f"SHORT NAME: {chart_name_plot1}")
+    print(f"DEVICE: {device}")
+    print(f"{'='*60}\n")
 
     # Apply dark theme for improved aesthetics
     plt.style.use("dark_background")
@@ -381,14 +396,21 @@ def main():
 
     # training loop with dynamic dropout
     # training with progress bars (trange for epochs, tqdm for batch progress)
-    for epoch in trange(epochs, desc="Epochs", unit="epoch"):
+    for epoch in trange(
+        epochs, desc="Epochs", unit="epoch", colour="blue", ascii=False
+    ):
         model.train()
         epoch_loss = 0.0
         new_p = get_dynamic_dropout(epoch, epochs, initial_dropout, final_dropout)
         set_dropout(model, new_p)
 
         batch_iter = tqdm(
-            dataloader, desc=f"Epoch {epoch+1}/{epochs}", leave=False, unit="batch"
+            dataloader,
+            desc=f"Epoch {epoch+1}/{epochs}",
+            leave=False,
+            unit="batch",
+            colour="blue",
+            ascii=False,
         )
         for xb, yb in batch_iter:
             xb = xb.to(device)
@@ -669,8 +691,8 @@ def main():
             ]
         )  # MODIFIED to use all fixed features
         real_data = np.vstack((real_data, new_row))
-        if (day + 1) % 10 == 0:
-            print(f"Predicted day {day+1}/{future_day}")
+        # if (day + 1) % 10 == 0:
+        print(f"Predicted day {day+1}/{future_day}")
 
     model.eval()  # MODIFIED: Explicitly set model to eval mode after Monte Carlo loop
 
@@ -766,7 +788,7 @@ def main():
         ax=graph,
         show_nontrading=True,
         datetime_format="%Y-%m-%d",
-        ylabel=f"{chart} Price",
+        ylabel=f"{chart_name_plot} Price",
     )
 
     # graph.plot(prediction_dates, actual_prices, color='white', label='Actual Prices', linewidth=2) # Replaced by candlesticks
@@ -804,7 +826,7 @@ def main():
         alpha=0.7,
     )
     graph.set_title(
-        f"{chart} Price Prediction with {future_day}-Day Forecast (with Monte Carlo Dropout Confidence)"
+        f"{chart_name_plot} Price Prediction with {future_day}-Day Forecast (with Monte Carlo Dropout Confidence)"
     )
     graph.set_xlabel("Date")
     # graph.set_ylabel(f'{chart} Price') # Handled by mpf
@@ -926,7 +948,7 @@ def main():
     out_dir = os.getcwd()
     present_day = dt.datetime.now().date()
     fig.savefig(
-        os.path.join(out_dir, f"{chart}_{present_day}.png"),
+        os.path.join(out_dir, f"{chart_name_plot}_{present_day}.png"),
         dpi=300,
         bbox_inches="tight",
     )
@@ -947,7 +969,7 @@ def main():
 # chart: The ticker symbol selected for analysis and prediction (e.g., AAPL).
 # prediction_days: The lookback window (number of past days) used as sequence input to predict the next day.
 # future_day: The number of days into the future that the model will explicitly forecast.
-# epochs: The total number of complete passes through the training dataset.
+# epochs: The total number of complete passes through the training dataset.+
 # batch_size: The number of sequence samples processed together in one iteration.
 # initial_dropout / final_dropout: Dynamic dropout probabilities. They decay over epochs to reduce regularization as the model learns.
 # data / test_data: Pandas DataFrames containing the historical stock data alongside computed features (SMA_14, RSI_14).
@@ -960,7 +982,7 @@ def main():
 # OBSCURE / INTERNAL VARIABLES:
 # script_start_time: Stores the exact timestamp when execution begins to calculate total runtime at the end.
 # _TB_BACKEND: A string flag ("torch", "tensorboardX", or None) that determines which logging backend is used for TensorBoard metrics.
-# device: The PyTorch executing device (e.g., CPU, or CUDA for GPU acceleration).
+# device: The PyTorch executing device (e.g., CPU, or CUDA for hardware acceleration).
 # criterion / optimizer: The loss function (MSELoss) and optimization algorithm (Adam) used during neural network training.
 # writer: The TensorBoard SummaryWriter instance used to log training loss and the computation graph.
 # dummy_features / dummy_features_test: Zero-filled numpy arrays used to pad predictions to 4 dimensions, satisfying the inverse scaler's requirements.
