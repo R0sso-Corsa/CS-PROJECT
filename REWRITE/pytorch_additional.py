@@ -149,7 +149,7 @@ print(f"Using device: {device}")
 
 
 chart_name_plot = chart_info.get("longName") or chart
-chart_name_plot_short = chart_info.get("shortName") or chart
+chart_name_plot1 = chart_info.get("shortName") or chart
 
 os.environ["DNNL_VERBOSE"] = "2"  # 0 = off, 1 = summary, 2 = detailed
 os.environ["CUDNN_LOGINFO_DBG"] = "1"
@@ -190,7 +190,9 @@ class SequenceDataset(Dataset):
 
 
 class LSTMModel(nn.Module):
-    def __init__(self, input_size=4, hidden_size=500, num_layers=2, dropout=0.5):
+    def __init__(
+        self, input_size=12, hidden_size=500, num_layers=4, dropout=0.5, output_size=30
+    ):
         super().__init__()
         self.layers = nn.ModuleList()
         in_size = input_size
@@ -207,8 +209,8 @@ class LSTMModel(nn.Module):
             self.layers.append(nn.Dropout(p=dropout))
             in_size = hidden_size  # Bidirectional LSTM output size is 2 * hidden_size
 
-        # final linear to produce single value
-        self.fc = nn.Linear(hidden_size, 1)
+        # final linear to produce multiple future values
+        self.fc = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
         # x: (batch, seq_len, features)
@@ -235,16 +237,17 @@ def set_dropout(model, new_p):
             m.p = new_p
 
 
-def build_sequences(scaled_values, prediction_days):
+def build_sequences(scaled_values, prediction_days, future_day=30):
     x, y = [], []
-    for i in range(prediction_days, len(scaled_values)):
+    for i in range(prediction_days, len(scaled_values) - future_day + 1):
         x.append(
             scaled_values[i - prediction_days : i, :]
         )  # MODIFIED to include all features
-        y.append(scaled_values[i, 0])  # y_train still predicts only 'Close'
+        y.append(
+            scaled_values[i : i + future_day, 0]
+        )  # y_train predicts 'Returns' for future_day steps
     x = np.array(x)
     y = np.array(y)
-    # x = np.reshape(x, (x.shape[0], x.shape[1], 1)) # No longer need to reshape to 1 feature
     return x, y
 
 
@@ -256,7 +259,7 @@ def main():
 
     print(f"\n{'='*60}")
     print(f"ANALYZING: {chart_name_plot} ({chart})")
-    print(f"SHORT NAME: {chart_name_plot_short}")
+    print(f"SHORT NAME: {chart_name_plot1}")
     print(f"DEVICE: {device}")
     print(f"{'='*60}\n")
 
@@ -324,26 +327,37 @@ def main():
     data.ffill(inplace=True)
     data.bfill(inplace=True)
 
+    # Calculate Returns
+    data["Returns"] = data["Close"].pct_change()
+
+    # Calculate Cyclical Features (Day of week, Month)
+    data["DoW_sin"] = np.sin(data.index.dayofweek * (2 * np.pi / 7))
+    data["DoW_cos"] = np.cos(data.index.dayofweek * (2 * np.pi / 7))
+    data["Month_sin"] = np.sin((data.index.month - 1) * (2 * np.pi / 12))
+    data["Month_cos"] = np.cos((data.index.month - 1) * (2 * np.pi / 12))
+
+    data.dropna(inplace=True)  # Drop first row (NaN return)
+
     scaler = MinMaxScaler(feature_range=(0, 1))
-    # MODIFIED: scaled_data now includes 'Close', 'Volume', 'SMA_14', 'RSI_14', 'MACD', 'Signal_Line', 'Upper_BB', 'Lower_BB'
-    scaled_data = scaler.fit_transform(
-        data[
-            [
-                "Close",
-                "Volume",
-                "SMA_14",
-                "RSI_14",
-                "MACD",
-                "Signal_Line",
-                "Upper_BB",
-                "Lower_BB",
-            ]
-        ].values
-    )
+    features_to_scale = [
+        "Returns",
+        "Volume",
+        "SMA_14",
+        "RSI_14",
+        "MACD",
+        "Signal_Line",
+        "Upper_BB",
+        "Lower_BB",
+        "DoW_sin",
+        "DoW_cos",
+        "Month_sin",
+        "Month_cos",
+    ]
+    scaled_data = scaler.fit_transform(data[features_to_scale].values)
 
     # prepare training data (exclude last prediction_days to avoid incomplete windows)
     training_data = scaled_data[:-prediction_days]
-    x_train, y_train = build_sequences(training_data, prediction_days)
+    x_train, y_train = build_sequences(training_data, prediction_days, future_day)
 
     # Check if x_train is empty
     if len(x_train) == 0:
@@ -363,11 +377,15 @@ def main():
     )
 
     model = LSTMModel(
-        input_size=8, hidden_size=500, num_layers=4, dropout=initial_dropout
+        input_size=12,
+        hidden_size=500,
+        num_layers=4,
+        dropout=initial_dropout,
+        output_size=future_day,
     ).to(
         device
-    )  # MODIFIED input_size
-    criterion = nn.MSELoss()
+    )  # MODIFIED input_size and output_size
+    criterion = nn.HuberLoss()  # MODIFIED: HubberLoss
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     # tensorboard writer (create only if available)
@@ -387,7 +405,7 @@ def main():
     if writer is not None:
         try:
             sample_input = torch.zeros(
-                (1, prediction_days, 8), device=device
+                (1, prediction_days, 12), device=device
             )  # MODIFIED input_size for graph
             writer.add_graph(model, sample_input)
         except Exception:
@@ -414,7 +432,7 @@ def main():
         )
         for xb, yb in batch_iter:
             xb = xb.to(device)
-            yb = yb.to(device).unsqueeze(1)
+            yb = yb.to(device)  # No unsqueeze, already (batch, future_day)
             optimizer.zero_grad()
             outputs = model(xb)
             loss = criterion(outputs, yb)
@@ -486,54 +504,27 @@ def main():
     test_data.ffill(inplace=True)
     test_data.bfill(inplace=True)
 
-    actual_prices = test_data["Close"].values
+    test_data["Returns"] = test_data["Close"].pct_change()
+    test_data["DoW_sin"] = np.sin(test_data.index.dayofweek * (2 * np.pi / 7))
+    test_data["DoW_cos"] = np.cos(test_data.index.dayofweek * (2 * np.pi / 7))
+    test_data["Month_sin"] = np.sin((test_data.index.month - 1) * (2 * np.pi / 12))
+    test_data["Month_cos"] = np.cos((test_data.index.month - 1) * (2 * np.pi / 12))
+    test_data.dropna(inplace=True)
 
-    # MODIFIED: total_dataset now includes 'Close', 'Volume', 'SMA_14', 'RSI_14', 'MACD', 'Signal_Line', 'Upper_BB', 'Lower_BB'
+    actual_prices = test_data["Close"].values.flatten()
+
     total_dataset = pd.concat(
-        (
-            data[
-                [
-                    "Close",
-                    "Volume",
-                    "SMA_14",
-                    "RSI_14",
-                    "MACD",
-                    "Signal_Line",
-                    "Upper_BB",
-                    "Lower_BB",
-                ]
-            ],
-            test_data[
-                [
-                    "Close",
-                    "Volume",
-                    "SMA_14",
-                    "RSI_14",
-                    "MACD",
-                    "Signal_Line",
-                    "Upper_BB",
-                    "Lower_BB",
-                ]
-            ],
-        ),
-        axis=0,
+        (data[features_to_scale], test_data[features_to_scale]), axis=0
     )
-    ai_inputs = total_dataset[
-        len(total_dataset) - len(test_data) - prediction_days :
-    ].values
-    ai_inputs = scaler.transform(
-        ai_inputs
-    )  # No reshape needed, as it's already 4 features
+
+    ai_inputs = total_dataset.iloc[-(len(test_data) + prediction_days) :].values
+    ai_inputs = scaler.transform(ai_inputs)
 
     x_test = []
+    # Test set to evaluate rolling 1-day ahead (which is the first output of our multi-step)
     for i in range(prediction_days, len(ai_inputs)):
-        x_test.append(
-            ai_inputs[i - prediction_days : i, :]
-        )  # MODIFIED to include all features
+        x_test.append(ai_inputs[i - prediction_days : i, :])
     x_test = np.array(x_test)
-    x_test = np.reshape(
-        x_test, (x_test.shape[0], x_test.shape[1], 8)
-    )  # MODIFIED to 4 features
 
     # Check if x_test is empty
     if len(x_test) == 0:
@@ -552,12 +543,22 @@ def main():
         xt = torch.from_numpy(x_test).float().to(device)
         preds = model(xt).cpu().numpy()
 
-    # Inverse transform predictions. Need to create a dummy array for the additional features (Volume, SMA_14, RSI_14).
-    dummy_features_test = np.zeros_like(
-        preds, shape=(preds.shape[0], 7)
-    )  # 3 dummy features for Volume, SMA, RSI
-    full_preds_scaled = np.concatenate((preds, dummy_features_test), axis=1)
-    prediction_prices = scaler.inverse_transform(full_preds_scaled)[:, 0].reshape(-1, 1)
+    # We only care about the first day out of the future_day predictions for simulating a rolling 1-day ahead test plot
+    first_day_returns_scaled = preds[:, 0].reshape(-1, 1)
+    dummy_features_test = np.zeros(
+        (first_day_returns_scaled.shape[0], 11)
+    )  # 11 dummy features
+    full_preds_scaled = np.concatenate(
+        (first_day_returns_scaled, dummy_features_test), axis=1
+    )
+    prediction_returns = scaler.inverse_transform(full_preds_scaled)[:, 0]
+
+    prediction_prices = np.zeros_like(prediction_returns)
+    for i in range(len(prediction_returns)):
+        prev_price = float(actual_prices[i - 1]) if i > 0 else float(data["Close"].values[-1].item())
+        prediction_prices[i] = prev_price * (1 + float(prediction_returns[i]))
+
+    prediction_prices = prediction_prices.reshape(-1, 1)
 
     # Calculate Mean Squared Error (MSE) and Root Mean Squared Error (RMSE)
     mse = mean_squared_error(actual_prices, prediction_prices)
@@ -608,7 +609,7 @@ def main():
     print(f"Directional Accuracy on test data: {directional_accuracy:.2f}%")
 
     prediction_dates = test_data.index
-    prediction_dates_offset = prediction_dates  # + pd.Timedelta(days=-1) # Removed offset to align with actual dates
+    prediction_dates_offset = prediction_dates
 
     last_actual_value = float(np.asarray(actual_prices[-1]).flatten()[0])
     last_predicted_value = float(np.asarray(prediction_prices[-1]).flatten()[0])
@@ -631,98 +632,39 @@ def main():
     print(f"{'='*60}\n")
 
     # Get the last prediction_days of scaled data including all features
-    real_data = ai_inputs[-prediction_days:, :].copy()  # MODIFIED to copy all features
-    future_predictions = []
-    future_predictions_std = []  # Initialized future_predictions_std
+    input_seq = ai_inputs[-prediction_days:].reshape(1, prediction_days, 12)
+    t_in = torch.from_numpy(input_seq).float().to(device)
 
-    # Store the last actual scaled values for Volume, SMA_14, RSI_14 for use in future predictions
-    # Assuming 'Close', 'Volume', 'SMA_14', 'RSI_14' order
-    last_actual_scaled_volume = ai_inputs[-1, 1]
-    last_actual_scaled_sma = ai_inputs[-1, 2]
-    last_actual_scaled_rsi = ai_inputs[-1, 3]
-    last_actual_scaled_macd = ai_inputs[-1, 4]
-    last_actual_scaled_signal_line = ai_inputs[-1, 5]
-    last_actual_scaled_upper_bb = ai_inputs[-1, 6]
-    last_actual_scaled_lower_bb = ai_inputs[-1, 7]
+    model.train()
+    monte_carlo_runs = []
+    for _ in range(num_monte_carlo_runs):
+        with torch.no_grad():
+            # append scaled array of length future_day
+            monte_carlo_runs.append(model(t_in).cpu().numpy()[0])
 
-    for day in range(future_day):
-        monte_carlo_predictions_for_day = (
-            []
-        )  # Initialized monte_carlo_predictions_for_day
-        input_seq = real_data[-prediction_days:].reshape(
-            1, prediction_days, 8
-        )  # MODIFIED to 4 features
-        t_in = torch.from_numpy(input_seq).float().to(device)
+    model.eval()
 
-        # Enable dropout during inference for Monte Carlo
-        model.train()  # Set model to training mode to enable dropout
-        for _ in range(num_monte_carlo_runs):
-            with torch.no_grad():  # Still no_grad for predictions, but dropout is active
-                monte_carlo_predictions_for_day.append(model(t_in).cpu().numpy()[0, 0])
+    # Convert each MC run from scaled returns to unscaled prices
+    last_actual_price = actual_prices[-1]
+    mc_prices = []
+    for run_scaled_returns in monte_carlo_runs:
+        dummy = np.zeros((future_day, 11))
+        full = np.concatenate((run_scaled_returns.reshape(-1, 1), dummy), axis=1)
+        unscaled_returns = scaler.inverse_transform(full)[:, 0]
 
-        # Set model back to evaluation mode after Monte Carlo runs
-        model.eval()
+        path = np.zeros(future_day)
+        cp = last_actual_price
+        for d in range(future_day):
+            cp = cp * (1 + unscaled_returns[d])
+            path[d] = cp
+        mc_prices.append(path)
 
-        # Calculate mean and standard deviation of Monte Carlo predictions for STATS
-        # next_pred = np.mean(monte_carlo_predictions_for_day) # Calculate mean (Smooth)
+    mc_prices = np.array(mc_prices)
 
-        # USE SINGLE REALIZATION FOR JAGGED TRAJECTORY
-        # We take the first run as the "path" we follow
-        next_pred = monte_carlo_predictions_for_day[
-            0
-        ]  # MODIFIED to use single realization
-
-        future_predictions_std.append(
-            np.std(monte_carlo_predictions_for_day)
-        )  # Calculate std dev
-
-        future_predictions.append(next_pred)
-        # Append the predicted 'Close' price and the last known 'Volume', 'SMA_14', 'RSI_14'
-        new_row = np.array(
-            [
-                next_pred,
-                last_actual_scaled_volume,
-                last_actual_scaled_sma,
-                last_actual_scaled_rsi,
-                last_actual_scaled_macd,
-                last_actual_scaled_signal_line,
-                last_actual_scaled_upper_bb,
-                last_actual_scaled_lower_bb,
-            ]
-        )  # MODIFIED to use all fixed features
-        real_data = np.vstack((real_data, new_row))
-        # if (day + 1) % 10 == 0:
-        print(f"Predicted day {day+1}/{future_day}")
-
-    model.eval()  # MODIFIED: Explicitly set model to eval mode after Monte Carlo loop
-
-    future_predictions = np.array(future_predictions).reshape(-1, 1)
-    # Inverse transform. Need to create dummy arrays for the additional features (Volume, SMA_14, RSI_14).
-    dummy_features = np.zeros_like(
-        future_predictions, shape=(future_predictions.shape[0], 7)
-    )  # 3 dummy features
-    full_future_predictions_scaled = np.concatenate(
-        (future_predictions, dummy_features), axis=1
-    )
-    future_predictions_prices = scaler.inverse_transform(
-        full_future_predictions_scaled
-    )[:, 0].reshape(-1, 1)
-
-    # Calculate confidence intervals
-    # Get the scaling factor for the 'Close' price
-    # This is (max_close - min_close) from the training data
-    # Assuming 'Close' is the first feature (index 0) in the scaler
-    close_min = scaler.data_min_[0]
-    close_max = scaler.data_max_[0]
-    scaling_factor_close = close_max - close_min
-
-    # Unscale the standard deviations
-    future_predictions_prices_std_unscaled = (
-        np.array(future_predictions_std) * scaling_factor_close
-    )
+    future_predictions_prices = np.mean(mc_prices, axis=0).reshape(-1, 1)
+    future_predictions_prices_std_unscaled = np.std(mc_prices, axis=0)
 
     confidence_level = 0.95
-    # Calculate the Z-score for the desired confidence level (two-tailed)
     z_score = st.norm.ppf(1 - (1 - confidence_level) / 2)
 
     future_predictions_lower = (
@@ -748,7 +690,7 @@ def main():
 
     # Print confidence interval info
     print(
-        f"Mean Standard Deviation of Monte Carlo predictions (scaled): {np.mean(future_predictions_std):.4f}"
+        f"Mean Standard Deviation of Monte Carlo price predictions (unscaled): ${np.mean(future_predictions_prices_std_unscaled):.2f}"
     )
     print(
         f"Approximate Average Margin of Error for 95% Confidence Interval (unscaled): {np.mean(z_score * future_predictions_prices_std_unscaled):.2f}\n"
@@ -948,7 +890,7 @@ def main():
     out_dir = os.getcwd()
     present_day = dt.datetime.now().date()
     fig.savefig(
-        os.path.join(out_dir, f"{chart_name_plot_short}_{present_day}.png"),
+        os.path.join(out_dir, f"{chart_name_plot}_{present_day}.png"),
         dpi=300,
         bbox_inches="tight",
     )
@@ -988,7 +930,7 @@ def main():
 # dummy_features / dummy_features_test: Zero-filled numpy arrays used to pad predictions to 4 dimensions, satisfying the inverse scaler's requirements.
 # scaling_factor_close: The absolute range (max - min) of "Close" prices from training data, used to accurately unscale confidence interval deviations.
 # z_score: The critical number representing standard deviations under a Normal curve for the 95% confidence interval bounds.
-# annotation / motion_hover:# Matplotlib attributes ensuring the interactive GUI annotation tracks and reports the nearest X/Y chart components upon hovering.
+# annotation / motion_hover: Matplotlib attributes ensuring the interactive GUI annotation tracks and reports the nearest X/Y chart components upon hovering.
 # actual_dnums / pred_dnums / future_dnums: Matplotlib arrays encoding datetime axes sequentially as float scalars for lightning-fast nearest-point calculations on hover.
 # forecast_df: The final Pandas DataFrame constructed to easily serialize predictions into a generated CSV report.
 # ==============================================================================
