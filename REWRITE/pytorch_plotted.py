@@ -264,8 +264,13 @@ def main():
     plt.style.use("dark_background")
 
     # figure for plotting
-    fig = plt.figure(figsize=(18, 9))
-    graph = fig.add_subplot(1, 1, 1)
+    fig = plt.figure(figsize=(20, 14))
+    fig.suptitle(
+        f"{chart_name_plot} - Detailed Prediction Analysis",
+        fontsize=16,
+        fontweight="bold",
+    )
+    graph = fig.add_subplot(2, 1, 1)
 
     # determine earliest date available
     ticker = yf.Ticker(chart)
@@ -834,6 +839,23 @@ def main():
     graph.grid(True, alpha=0.3)
     # fig.autofmt_xdate() # mpf handles this
 
+    # Layer 2: Residuals analysis underneath
+    ax_res = plt.subplot(2, 1, 2)
+    residuals = actual_prices.flatten() - prediction_prices.flatten()
+    ax_res.scatter(prediction_dates, residuals, color="yellow", alpha=0.6, s=20)
+    ax_res.axhline(y=0, color="red", linestyle="--", linewidth=1)
+    ax_res.fill_between(
+        prediction_dates,
+        residuals.mean() - residuals.std(),
+        residuals.mean() + residuals.std(),
+        color="green",
+        alpha=0.1,
+    )
+    ax_res.set_title("Prediction Residuals (Actual - Predicted)", fontweight="bold")
+    ax_res.set_ylabel("Residual ($)")
+    ax_res.set_xlabel("Date")
+    ax_res.grid(True, alpha=0.3)
+
     # Interactive hover annotation showing nearest actual/predicted/future values
     annotation = graph.annotate(
         "",
@@ -957,6 +979,77 @@ def main():
     )
     forecast_df.to_csv(
         os.path.join(out_dir, "future_predictions_pytorch.csv"), index=False
+    )
+
+    # ----------------------- SECONDARY WINDOW: FORECAST DETAIL -----------------------
+    # Additional detailed forecast chart
+    fig2, (ax_price, ax_ci) = plt.subplots(2, 1, figsize=(16, 10))
+    fig2.suptitle(
+        f"{chart_name_plot} - {future_day}-Day Forecast with Uncertainty",
+        fontsize=14,
+        fontweight="bold",
+    )
+
+    # Price forecast
+    ax_price.plot(
+        test_data.index[-60:],
+        actual_prices[-60:],
+        "o-",
+        color="white",
+        linewidth=2.5,
+        markersize=4,
+        label="Historical Prices",
+        alpha=0.8,
+    )
+    ax_price.plot(
+        future_dates,
+        future_predictions_prices.flatten(),
+        "s-",
+        color="lime",
+        linewidth=3,
+        markersize=6,
+        label="Forecast",
+        alpha=0.9,
+    )
+    ax_price.fill_between(
+        future_dates,
+        future_predictions_lower,
+        future_predictions_upper,
+        color="purple",
+        alpha=0.2,
+        label="95% Confidence Band",
+    )
+    ax_price.axvline(x=last_date, color="orange", linestyle=":", linewidth=2, alpha=0.7)
+    ax_price.set_ylabel("Price ($)", fontsize=12, fontweight="bold")
+    ax_price.set_title("Price Forecast", fontweight="bold")
+    ax_price.legend(loc="best", fontsize=10)
+    ax_price.grid(True, alpha=0.3)
+
+    # Confidence interval width
+    ci_widths = future_predictions_upper - future_predictions_lower
+    colors_ci = plt.cm.RdYlGn_r(np.linspace(0.3, 0.7, len(ci_widths)))
+    ax_ci.bar(
+        range(len(ci_widths)),
+        ci_widths,
+        color=colors_ci,
+        edgecolor="white",
+        linewidth=1,
+        alpha=0.8,
+    )
+    ax_ci.set_xlabel("Days Ahead", fontsize=12, fontweight="bold")
+    ax_ci.set_ylabel("Confidence Interval Width ($)", fontsize=12, fontweight="bold")
+    ax_ci.set_title("Uncertainty Over Forecast Horizon", fontweight="bold")
+    ax_ci.set_xticks(range(len(ci_widths)))
+    ax_ci.set_xticklabels([f"Day {i+1}" for i in range(len(ci_widths))], rotation=45)
+    ax_ci.grid(True, alpha=0.3, axis="y")
+
+    fig2.tight_layout()
+    fig2.savefig(
+        os.path.join(
+            out_dir, f"{chart_name_plot_short}_forecast_detail_{present_day}.png"
+        ),
+        dpi=300,
+        bbox_inches="tight",
     )
     print("\nSaved:", [f for f in os.listdir(out_dir) if f.endswith((".png", ".csv"))])
 
