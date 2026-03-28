@@ -527,8 +527,8 @@ def main():
             ]
         )
         real_data = np.vstack((real_data, new_row))
-        if (day + 1) % 10 == 0:
-            print(f"Predicted day {day + 1}/{future_day}")
+        #if (day + 1) % 10 == 0:
+        print(f"Predicted day {day + 1}/{future_day}")
 
     model.eval()
 
