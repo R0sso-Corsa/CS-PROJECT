@@ -40,10 +40,51 @@ import scipy.stats as st
 import math
 
 
+# import argparse
+
+# parser = argparse.ArgumentParser(description="AI Price Prediction LSTM Model")
+# parser.add_argument(
+#     "--ticker", "-t", type=str, default=None, help="Ticker symbol (e.g., BTC-GBP, AAPL)"
+# )
+# parser.add_argument(
+#     "--device",
+#     "-d",
+#     type=str,
+#     default="cpu",
+#     choices=["cpu", "gpu"],
+#     help="Device type",
+# )
+# parser.add_argument(
+#     "--prediction-days", "-p", type=int, default=30, help="Number of prediction days"
+# )
+# parser.add_argument(
+#     "--future-days",
+#     "-f",
+#     type=int,
+#     default=30,
+#     help="Number of future days to forecast",
+# )
+# parser.add_argument(
+#     "--epochs", "-e", type=int, default=150, help="Number of training epochs"
+# )
+# parser.add_argument("--batch-size", "-b", type=int, default=32, help="Batch size")
+# parser.add_argument(
+#     "--init-dropout", type=float, default=0.3, help="Initial dropout rate"
+# )
+# parser.add_argument(
+#     "--final-dropout", type=float, default=0.1, help="Final dropout rate"
+# )
+# parser.add_argument(
+#     "--mc-runs", type=int, default=100, help="Monte Carlo runs for uncertainty"
+# )
+
+# args = parser.parse_args()
+
+
 class TeeLogger:
     def __init__(self, filename):
         self.terminal = sys.stdout
-        self.log = open(filename, "a", encoding="utf-8")
+        self.log = open(filename, "a", encoding="utf-8", errors="replace")
 
     def write(self, message):
         if message.strip():
@@ -51,7 +92,10 @@ class TeeLogger:
             self.log.write(timestamp + message + "\n")
         else:
             self.log.write(message)
-        self.terminal.write(message)
+        try:
+            self.terminal.write(message)
+        except UnicodeEncodeError:
+            self.terminal.write(message.encode("ascii", "replace").decode("ascii"))
         self.log.flush()
 
     def flush(self):
@@ -108,18 +152,22 @@ def choose_chart_interactive():
             return choice
 
 
-chart = choose_chart_interactive()
-chart_info = yf.Ticker(chart).info
-prediction_days = 30
-future_day = 30
-epochs = 150
-batch_size = 32
-initial_dropout = 0.3
-final_dropout = 0.1
-val_split = 0.15
-num_monte_carlo_runs = 100
+if args.ticker:
+    chart = args.ticker
+else:
+    chart = choose_chart_interactive()
 
-device_type = input("Enter device type (cpu/gpu): ").strip().lower()
+chart_info = yf.Ticker(chart).info
+prediction_days = args.prediction_days
+future_day = args.future_days
+epochs = args.epochs
+batch_size = args.batch_size
+initial_dropout = args.init_dropout
+final_dropout = args.final_dropout
+val_split = 0.15
+num_monte_carlo_runs = args.mc_runs
+
+device_type = args.device
 device = torch.device(
     "cuda" if (device_type == "gpu" and torch.cuda.is_available()) else "cpu"
 )
@@ -527,7 +575,7 @@ def main():
             ]
         )
         real_data = np.vstack((real_data, new_row))
-        #if (day + 1) % 10 == 0:
+        # if (day + 1) % 10 == 0:
         print(f"Predicted day {day + 1}/{future_day}")
 
     model.eval()

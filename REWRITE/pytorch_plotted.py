@@ -48,8 +48,47 @@ import math  # Added for sqrt in RMSE calculation
 
 # ----------------------- Configuration -----------------------
 
+import argparse
 import sys
 import datetime
+
+parser = argparse.ArgumentParser(description="AI Price Prediction LSTM Model")
+parser.add_argument(
+    "--ticker", "-t", type=str, default=None, help="Ticker symbol (e.g., BTC-GBP, AAPL)"
+)
+parser.add_argument(
+    "--device",
+    "-d",
+    type=str,
+    default="cpu",
+    choices=["cpu", "gpu"],
+    help="Device type",
+)
+parser.add_argument(
+    "--prediction-days", "-p", type=int, default=30, help="Number of prediction days"
+)
+parser.add_argument(
+    "--future-days",
+    "-f",
+    type=int,
+    default=30,
+    help="Number of future days to forecast",
+)
+parser.add_argument(
+    "--epochs", "-e", type=int, default=40, help="Number of training epochs"
+)
+parser.add_argument("--batch-size", "-b", type=int, default=32, help="Batch size")
+parser.add_argument(
+    "--init-dropout", type=float, default=0.4, help="Initial dropout rate"
+)
+parser.add_argument(
+    "--final-dropout", type=float, default=0.1, help="Final dropout rate"
+)
+parser.add_argument(
+    "--mc-runs", type=int, default=100, help="Monte Carlo runs for uncertainty"
+)
+
+args = parser.parse_args()
 
 
 class TeeLogger:
@@ -103,7 +142,7 @@ def choose_chart_interactive():
                 print(f"Search results for '{query}':")
                 for i, q in enumerate(results.quotes):
                     print(
-                        f"{i+1}. {q.get('symbol')} - {q.get('shortname')} ({q.get('quoteType')})"
+                        f"{i + 1}. {q.get('symbol')} - {q.get('shortname')} ({q.get('quoteType')})"
                     )
                 sel = input(
                     "Enter number to select a symbol, or press Enter to cancel: "
@@ -128,18 +167,22 @@ def choose_chart_interactive():
 
 
 # ask user for chart symbol (interactive search available)
-chart = choose_chart_interactive()
-chart_info = yf.Ticker(chart).info
-prediction_days = 30  # MODIFIED: Changed prediction_days to 90
-future_day = 30
-epochs = 40  # MODIFIED: Increased epochs to 100
-batch_size = 32  # MODIFIED: Changed batch_size
-initial_dropout = 0.4
-final_dropout = 0.1
-train_time = 2
-num_monte_carlo_runs = 100  # Number of forward passes for Monte Carlo Dropout
+if args.ticker:
+    chart = args.ticker
+else:
+    chart = choose_chart_interactive()
 
-device_type = input("Enter device type (cpu/gpu): ").strip().lower()
+chart_info = yf.Ticker(chart).info
+prediction_days = args.prediction_days
+future_day = args.future_days
+epochs = args.epochs
+batch_size = args.batch_size
+initial_dropout = args.init_dropout
+final_dropout = args.final_dropout
+train_time = 2
+num_monte_carlo_runs = args.mc_runs
+
+device_type = args.device
 
 device = torch.device(
     "cuda" if (device_type == "gpu" and torch.cuda.is_available()) else "cpu"
@@ -254,11 +297,11 @@ sys.stderr = sys.stdout  # This captures the Traceback/Errors too!
 
 def main():
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"ANALYZING: {chart_name_plot} ({chart})")
     print(f"SHORT NAME: {chart_name_plot_short}")
     print(f"DEVICE: {device}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # Apply dark theme for improved aesthetics
     plt.style.use("dark_background")
@@ -369,9 +412,7 @@ def main():
 
     model = LSTMModel(
         input_size=8, hidden_size=500, num_layers=4, dropout=initial_dropout
-    ).to(
-        device
-    )  # MODIFIED input_size
+    ).to(device)  # MODIFIED input_size
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
@@ -411,7 +452,7 @@ def main():
 
         batch_iter = tqdm(
             dataloader,
-            desc=f"Epoch {epoch+1}/{epochs}",
+            desc=f"Epoch {epoch + 1}/{epochs}",
             leave=False,
             unit="batch",
             colour="blue",
@@ -441,7 +482,7 @@ def main():
 
         # update epoch-level progress description
         tqdm.write(
-            f"Epoch {epoch+1}/{epochs} — Loss: {epoch_loss:.6f} — Dropout: {new_p:.3f}"
+            f"Epoch {epoch + 1}/{epochs} — Loss: {epoch_loss:.6f} — Dropout: {new_p:.3f}"
         )
 
     if writer is not None:
@@ -631,9 +672,9 @@ def main():
     )
 
     # Forecast next N days via rolling prediction with Monte Carlo Dropout
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"PREDICTING NEXT {future_day} DAYS WITH MONTE CARLO DROPOUT...")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # Get the last prediction_days of scaled data including all features
     real_data = ai_inputs[-prediction_days:, :].copy()  # MODIFIED to copy all features
@@ -651,9 +692,7 @@ def main():
     last_actual_scaled_lower_bb = ai_inputs[-1, 7]
 
     for day in range(future_day):
-        monte_carlo_predictions_for_day = (
-            []
-        )  # Initialized monte_carlo_predictions_for_day
+        monte_carlo_predictions_for_day = []  # Initialized monte_carlo_predictions_for_day
         input_seq = real_data[-prediction_days:].reshape(
             1, prediction_days, 8
         )  # MODIFIED to 4 features
@@ -662,7 +701,9 @@ def main():
         # Enable dropout during inference for Monte Carlo
         model.train()  # Set model to training mode to enable dropout
         for _ in range(num_monte_carlo_runs):
-            with torch.no_grad():  # Still no_grad for predictions, but dropout is active
+            with (
+                torch.no_grad()
+            ):  # Still no_grad for predictions, but dropout is active
                 monte_carlo_predictions_for_day.append(model(t_in).cpu().numpy()[0, 0])
 
         # Set model back to evaluation mode after Monte Carlo runs
@@ -697,7 +738,7 @@ def main():
         )  # MODIFIED to use all fixed features
         real_data = np.vstack((real_data, new_row))
         # if (day + 1) % 10 == 0:
-        print(f"Predicted day {day+1}/{future_day}")
+        print(f"Predicted day {day + 1}/{future_day}")
 
     model.eval()  # MODIFIED: Explicitly set model to eval mode after Monte Carlo loop
 
@@ -956,7 +997,7 @@ def main():
 
         actual_text = f"${actual:.2f}" if (not np.isnan(actual)) else "N/A"
         pred_text = f"${predicted:.2f}"
-        text = f'{date.strftime("%Y-%m-%d")}\nActual: {actual_text}\nPredicted: {pred_text}'
+        text = f"{date.strftime('%Y-%m-%d')}\nActual: {actual_text}\nPredicted: {pred_text}"
 
         # position annotation near cursor
         annotation.xy = (event.xdata, event.ydata)
@@ -1040,7 +1081,7 @@ def main():
     ax_ci.set_ylabel("Confidence Interval Width ($)", fontsize=12, fontweight="bold")
     ax_ci.set_title("Uncertainty Over Forecast Horizon", fontweight="bold")
     ax_ci.set_xticks(range(len(ci_widths)))
-    ax_ci.set_xticklabels([f"Day {i+1}" for i in range(len(ci_widths))], rotation=45)
+    ax_ci.set_xticklabels([f"Day {i + 1}" for i in range(len(ci_widths))], rotation=45)
     ax_ci.grid(True, alpha=0.3, axis="y")
 
     fig2.tight_layout()
