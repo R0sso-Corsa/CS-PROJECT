@@ -2,11 +2,14 @@ import time
 import sys
 
 script_start_time = time.time()
-
+import torch_optimizer as optim  # EXTENDED LIST OF TORCH OPTIMISERS [IMPORTANT == GO THROUGH EFFICIENT OPTIONS (100+ to use)]
 import os
 import datetime as dt
 import numpy as np
 import pandas as pd
+import matplotlib
+
+matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
 from matplotlib import dates as mdates
 import yfinance as yf
@@ -48,47 +51,8 @@ import math  # Added for sqrt in RMSE calculation
 
 # ----------------------- Configuration -----------------------
 
-import argparse
 import sys
 import datetime
-
-parser = argparse.ArgumentParser(description="AI Price Prediction LSTM Model")
-parser.add_argument(
-    "--ticker", "-t", type=str, default=None, help="Ticker symbol (e.g., BTC-GBP, AAPL)"
-)
-parser.add_argument(
-    "--device",
-    "-d",
-    type=str,
-    default="cpu",
-    choices=["cpu", "gpu"],
-    help="Device type",
-)
-parser.add_argument(
-    "--prediction-days", "-p", type=int, default=30, help="Number of prediction days"
-)
-parser.add_argument(
-    "--future-days",
-    "-f",
-    type=int,
-    default=30,
-    help="Number of future days to forecast",
-)
-parser.add_argument(
-    "--epochs", "-e", type=int, default=40, help="Number of training epochs"
-)
-parser.add_argument("--batch-size", "-b", type=int, default=32, help="Batch size")
-parser.add_argument(
-    "--init-dropout", type=float, default=0.4, help="Initial dropout rate"
-)
-parser.add_argument(
-    "--final-dropout", type=float, default=0.1, help="Final dropout rate"
-)
-parser.add_argument(
-    "--mc-runs", type=int, default=100, help="Monte Carlo runs for uncertainty"
-)
-
-args = parser.parse_args()
 
 
 class TeeLogger:
@@ -167,22 +131,18 @@ def choose_chart_interactive():
 
 
 # ask user for chart symbol (interactive search available)
-if args.ticker:
-    chart = args.ticker
-else:
-    chart = choose_chart_interactive()
-
+chart = choose_chart_interactive()
 chart_info = yf.Ticker(chart).info
-prediction_days = args.prediction_days
-future_day = args.future_days
-epochs = args.epochs
-batch_size = args.batch_size
-initial_dropout = args.init_dropout
-final_dropout = args.final_dropout
+prediction_days = 30
+future_day = 30
+epochs = 40
+batch_size = 32
+initial_dropout = 0.6
+final_dropout = 0.1
 train_time = 2
-num_monte_carlo_runs = args.mc_runs
+num_monte_carlo_runs = 100  # Number of forward passes for Monte Carlo Dropout
 
-device_type = args.device
+device_type = input("Enter device type (cpu/gpu): ").strip().lower()
 
 device = torch.device(
     "cuda" if (device_type == "gpu" and torch.cuda.is_available()) else "cpu"
@@ -201,8 +161,8 @@ os.environ["PYTORCH_JIT_LOG_LEVEL"] = ">>"
 os.environ["PYTORCH_JIT_LOGS"] = "all"
 
 torch._logging.set_logs(
-    graph_breaks=True,  # Modified from 20 to True
-    recompiles=True,  # Modified from 20 to True
+    graph_breaks=True,
+    recompiles=True,
     dynamo=20,
     inductor=20,
 )
@@ -281,9 +241,7 @@ def set_dropout(model, new_p):
 def build_sequences(scaled_values, prediction_days):
     x, y = [], []
     for i in range(prediction_days, len(scaled_values)):
-        x.append(
-            scaled_values[i - prediction_days : i, :]
-        )  # MODIFIED to include all features
+        x.append(scaled_values[i - prediction_days : i, :])
         y.append(scaled_values[i, 0])  # y_train still predicts only 'Close'
     x = np.array(x)
     y = np.array(y)
@@ -292,7 +250,7 @@ def build_sequences(scaled_values, prediction_days):
 
 
 sys.stdout = TeeLogger("terminal_activity.log")
-sys.stderr = sys.stdout  # This captures the Traceback/Errors too!
+sys.stderr = sys.stdout  # thankfully captures the Traceback/Errors
 
 
 def main():
@@ -412,9 +370,9 @@ def main():
 
     model = LSTMModel(
         input_size=8, hidden_size=500, num_layers=4, dropout=initial_dropout
-    ).to(device)  # MODIFIED input_size
+    ).to(device)
     criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.LARS(model.parameters(), weight_decay=0.05)
 
     # tensorboard writer (create only if available)
     log_dir = os.path.join("logs", "fit", dt.datetime.now().strftime("%Y%m%d-%H%M%S"))
@@ -432,9 +390,7 @@ def main():
     # try to log the model graph (best-effort)
     if writer is not None:
         try:
-            sample_input = torch.zeros(
-                (1, prediction_days, 8), device=device
-            )  # MODIFIED input_size for graph
+            sample_input = torch.zeros((1, prediction_days, 8), device=device)
             writer.add_graph(model, sample_input)
         except Exception:
             # some models / environments don't support add_graph; ignore
@@ -496,7 +452,7 @@ def main():
     if use_earliest_test:
         test_start = start
     else:
-        test_start = dt.datetime(2025, 6, 1)  # MODIFIED: Reverted test_start
+        test_start = dt.datetime(2025, 6, 1)
     test_end = dt.datetime.now()
     test_data = yf.download(chart, test_start, test_end, auto_adjust=True)
 
@@ -567,19 +523,13 @@ def main():
     ai_inputs = total_dataset[
         len(total_dataset) - len(test_data) - prediction_days :
     ].values
-    ai_inputs = scaler.transform(
-        ai_inputs
-    )  # No reshape needed, as it's already 4 features
+    ai_inputs = scaler.transform(ai_inputs)
 
     x_test = []
     for i in range(prediction_days, len(ai_inputs)):
-        x_test.append(
-            ai_inputs[i - prediction_days : i, :]
-        )  # MODIFIED to include all features
+        x_test.append(ai_inputs[i - prediction_days : i, :])
     x_test = np.array(x_test)
-    x_test = np.reshape(
-        x_test, (x_test.shape[0], x_test.shape[1], 8)
-    )  # MODIFIED to 4 features
+    x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 8))
 
     # Check if x_test is empty
     if len(x_test) == 0:
@@ -677,7 +627,7 @@ def main():
     print(f"{'=' * 60}\n")
 
     # Get the last prediction_days of scaled data including all features
-    real_data = ai_inputs[-prediction_days:, :].copy()  # MODIFIED to copy all features
+    real_data = ai_inputs[-prediction_days:, :].copy()
     future_predictions = []
     future_predictions_std = []  # Initialized future_predictions_std
 
@@ -692,10 +642,10 @@ def main():
     last_actual_scaled_lower_bb = ai_inputs[-1, 7]
 
     for day in range(future_day):
-        monte_carlo_predictions_for_day = []  # Initialized monte_carlo_predictions_for_day
-        input_seq = real_data[-prediction_days:].reshape(
-            1, prediction_days, 8
-        )  # MODIFIED to 4 features
+        monte_carlo_predictions_for_day = (
+            []
+        )  # Initialized monte_carlo_predictions_for_day
+        input_seq = real_data[-prediction_days:].reshape(1, prediction_days, 8)
         t_in = torch.from_numpy(input_seq).float().to(device)
 
         # Enable dropout during inference for Monte Carlo
@@ -735,12 +685,12 @@ def main():
                 last_actual_scaled_upper_bb,
                 last_actual_scaled_lower_bb,
             ]
-        )  # MODIFIED to use all fixed features
+        )
         real_data = np.vstack((real_data, new_row))
         # if (day + 1) % 10 == 0:
         print(f"Predicted day {day + 1}/{future_day}")
 
-    model.eval()  # MODIFIED: Explicitly set model to eval mode after Monte Carlo loop
+    model.eval()
 
     future_predictions = np.array(future_predictions).reshape(-1, 1)
     # Inverse transform. Need to create dummy arrays for the additional features (Volume, SMA_14, RSI_14).
@@ -1016,7 +966,10 @@ def main():
         bbox_inches="tight",
     )
     forecast_df = pd.DataFrame(
-        {"Date": future_dates, "Predicted_Price": future_predictions_prices.flatten()}
+        {
+            "Date": future_dates,
+            "Predicted_Price for next day": future_predictions_prices.flatten(),
+        }
     )
     forecast_df.to_csv(
         os.path.join(out_dir, "future_predictions_pytorch.csv"), index=False
@@ -1098,33 +1051,202 @@ def main():
 
 
 # ==============================================================================
-# IMPORTANT VARIABLES EXPLANATION
+# ╔═══════════════════════════════════════════════════════════════════════════╗
+# ║                           DATA DICTIONARY                                 ║
+# ║                        pytorch_plotted.py v2.0                            ║
+# ╚═══════════════════════════════════════════════════════════════════════════╝
 # ==============================================================================
-# chart: The ticker symbol selected for analysis and prediction (e.g., AAPL).
-# prediction_days: The lookback window (number of past days) used as sequence input to predict the next day.
-# future_day: The number of days into the future that the model will explicitly forecast.
-# epochs: The total number of complete passes through the training dataset.+
-# batch_size: The number of sequence samples processed together in one iteration.
-# initial_dropout / final_dropout: Dynamic dropout probabilities. They decay over epochs to reduce regularization as the model learns.
-# data / test_data: Pandas DataFrames containing the historical stock data alongside computed features (SMA_14, RSI_14).
-# scaler: The MinMaxScaler used to map all features to the [0, 1] range for neural network stability.
-# model: The PyTorch Bidirectional LSTM (Long Short-Term Memory) neural network.
-# num_monte_carlo_runs: Number of stochastic forward inference passes (with dropout enabled) to estimate prediction uncertainty.
-# future_predictions_prices: The model's forecasted stock prices for the next `future_day` days (inverse-transformed to standard currency).
-# future_predictions_lower / future_predictions_upper: The bounds establishing the 95% confidence interval for the predictions.
 #
-# OBSCURE / INTERNAL VARIABLES:
-# script_start_time: Stores the exact timestamp when execution begins to calculate total runtime at the end.
-# _TB_BACKEND: A string flag ("torch", "tensorboardX", or None) that determines which logging backend is used for TensorBoard metrics.
-# device: The PyTorch executing device (e.g., CPU, or CUDA for hardware acceleration).
-# criterion / optimizer: The loss function (MSELoss) and optimization algorithm (Adam) used during neural network training.
-# writer: The TensorBoard SummaryWriter instance used to log training loss and the computation graph.
-# dummy_features / dummy_features_test: Zero-filled numpy arrays used to pad predictions to 4 dimensions, satisfying the inverse scaler's requirements.
-# scaling_factor_close: The absolute range (max - min) of "Close" prices from training data, used to accurately unscale confidence interval deviations.
-# z_score: The critical number representing standard deviations under a Normal curve for the 95% confidence interval bounds.
-# annotation / motion_hover:# Matplotlib attributes ensuring the interactive GUI annotation tracks and reports the nearest X/Y chart components upon hovering.
-# actual_dnums / pred_dnums / future_dnums: Matplotlib arrays encoding datetime axes sequentially as float scalars for lightning-fast nearest-point calculations on hover.
-# forecast_df: The final Pandas DataFrame constructed to easily serialize predictions into a generated CSV report.
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │ CONFIGURATION PARAMETERS                                                    │
+# ├──────────────────────────┬─────────────┬────────────────────────────────────┤
+# │ Variable                 │ Type        │ Description                        │
+# ├──────────────────────────┼─────────────┼────────────────────────────────────┤
+# │ chart                    │ str         │ Ticker symbol entered by user      │
+# │                          │             │ (e.g. "AAPL", "TSLA", "BTC-USD")   │
+# ├──────────────────────────┼─────────────┼────────────────────────────────────┤
+# │ chart_info               │ dict        │ yf.Ticker(chart).info metadata     │
+# ├──────────────────────────┼─────────────┼────────────────────────────────────┤
+# │ chart_name_plot          │ str         │ Full company name for plot titles  │
+# ├──────────────────────────┼─────────────┼────────────────────────────────────┤
+# │ chart_name_plot_short    │ str         │ Short name for output filenames    │
+# ├──────────────────────────┼─────────────┼────────────────────────────────────┤
+# │ prediction_days          │ int = 30    │ LSTM lookback window length        │
+# ├──────────────────────────┼─────────────┼────────────────────────────────────┤
+# │ future_day               │ int = 30    │ Days to forecast ahead             │
+# ├──────────────────────────┼─────────────┼────────────────────────────────────┤
+# │ epochs                   │ int = 40    │ Training epochs                    │
+# ├──────────────────────────┼─────────────┼────────────────────────────────────┤
+# │ batch_size               │ int = 32    │ Batch size for DataLoader          │
+# ├──────────────────────────┼─────────────┼────────────────────────────────────┤
+# │ initial_dropout          │ float = 0.6 │ Starting dropout rate (epoch 0)    │
+# ├──────────────────────────┼─────────────┼────────────────────────────────────┤
+# │ final_dropout            │ float = 0.1 │ Final dropout rate (epoch N)       │
+# ├──────────────────────────┼─────────────┼────────────────────────────────────┤
+# │ train_time               │ int = 2     │ Reserved (unused)                  │
+# ├──────────────────────────┼─────────────┼────────────────────────────────────┤
+# │ num_monte_carlo_runs     │ int = 100   │ MC dropout passes per forecast day │
+# ├──────────────────────────┼─────────────┼────────────────────────────────────┤
+# │ device_type              │ str         │ "cpu" or "gpu" (user input)        │
+# ├──────────────────────────┼─────────────┼────────────────────────────────────┤
+# │ device                   │ torch.device│ Resolved compute device            │
+# ├──────────────────────────┼─────────────┼────────────────────────────────────┤
+# │ confidence_level         │ float = 0.95│ CI confidence (default 95%)        │
+# └──────────────────────────┴─────────────┴────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │ MODEL COMPONENTS                                                            │
+# ├──────────────────────────┼──────────────────────────────────────────────────┤
+# │ LSTMModel                │ Bidirectional LSTM stack                         │
+# │                          │ • num_layers × (LSTM + Dropout) pairs            │
+# │                          │ • hidden_size=500, bidirectional=True            │
+# │                          │ • Final Linear(hidden_size → 1)                  │
+# ├──────────────────────────┼──────────────────────────────────────────────────┤
+# │ SequenceDataset          │ PyTorch Dataset wrapper for (x_train, y_train)   │
+# ├──────────────────────────┼──────────────────────────────────────────────────┤
+# │ model                    │ LSTMModel instance on `device`                   │
+# ├──────────────────────────┼──────────────────────────────────────────────────┤
+# │ criterion                │ nn.MSELoss (Mean Squared Error)                  │
+# ├──────────────────────────┼──────────────────────────────────────────────────┤
+# │ optimizer                │ torch_optimizer.Lamb (weight_decay=0.05)         │
+# └──────────────────────────┴──────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │ RAW DATA                                                                    │
+# ├──────────────────────────┬──────────────────────────────────────────────────┤
+# │ data                     │ pd.DataFrame - Full OHLCV history                │
+# │ test_data                │ pd.DataFrame - Evaluation window (2025-06-01→)   │
+# │ total_dataset            │ pd.DataFrame - Concatenation of data+test        │
+# │ actual_prices            │ np.ndarray - Ground truth Close prices           │
+# └──────────────────────────┴──────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │ FEATURE ENGINEERING                                                         │
+# ├──────────────────────────┬──────────────────────────────────────────────────┤
+# │ SMA_14                   │ 14-day Simple Moving Average                     │
+# │ RSI_14                   │ 14-day Relative Strength Index (0-100)           │
+# │ MACD                     │ 12-day EMA − 26-day EMA                          │
+# │ Signal_Line              │ 9-day EMA of MACD                                │
+# │ Upper_BB                 │ Upper Bollinger Band (20-SMA + 2σ)               │
+# │ Lower_BB                 │ Lower Bollinger Band (20-SMA − 2σ)               │
+# └──────────────────────────┴──────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │ SCALING & SEQUENCES                                                         │
+# ├──────────────────────────┬──────────────────────────────────────────────────┤
+# │ scaler                   │ MinMaxScaler(feature_range=(0,1))                │
+# │ scaled_data              │ np.ndarray (N, 8) - All scaled features          │
+# │ training_data            │ np.ndarray - scaled_data[:-prediction_days]      │
+# │ ai_inputs                │ np.ndarray - Test context for x_test             │
+# │ x_train                  │ np.ndarray (N, prediction_days, 8)               │
+# │ y_train                  │ np.ndarray (N,) - Next-day Close targets         │
+# │ x_test                   │ np.ndarray (len(test_data), prediction_days, 8)  │
+# │ dataset                  │ SequenceDataset instance                         │
+# │ dataloader               │ DataLoader (shuffle=True)                        │
+# └──────────────────────────┴──────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │ TRAINING METRICS                                                            │
+# ├──────────────────────────┬──────────────────────────────────────────────────┤
+# │ epoch_loss               │ MSE loss per epoch                               │
+# │ new_p                    │ Dynamic dropout rate for current epoch           │
+# │ writer                   │ TensorBoard SummaryWriter (or None)              │
+# │ log_dir                  │ "logs/fit/YYYYMMDD-HHMMSS" path                  │
+# │ _TB_BACKEND              │ "torch" | "tensorboardX" | None                  │
+# └──────────────────────────┴──────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │ EVALUATION METRICS                                                          │
+# ├──────────────────────────┬──────────────────────────────────────────────────┤
+# │ preds                    │ Raw LSTM output (scaled [0,1])                   │
+# │ prediction_prices        │ Inverse-transformed predictions (raw $)          │
+# │ mse                      │ Mean Squared Error                               │
+# │ rmse                     │ Root MSE - primary accuracy metric               │
+# │ mae                      │ Mean Absolute Error                              │
+# │ directional_accuracy     │ % of correct price direction predictions         │
+# └──────────────────────────┴──────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │ MONTE CARLO FORECAST                                                        │
+# ├──────────────────────────┬──────────────────────────────────────────────────┤
+# │ real_data                │ Rolling buffer (grows each forecast day)         │
+# │ monte_carlo_predictions  │ List of num_monte_carlo_runs outputs             │
+# │ future_predictions       │ Scaled Close predictions (future_day,)           │
+# │ future_predictions_std   │ Std dev across MC runs per day                   │
+# │ future_predictions_prices│ Raw $ predictions (inverse transformed)          │
+# │ close_min / close_max    │ Training data min/max Close prices               │
+# │ scaling_factor_close     │ close_max - close_min                            │
+# │ z_score                  │ ~1.96 for 95% CI                                 │
+# │ future_predictions_lower │ Lower CI bound per day                           │
+# │ future_predictions_upper │ Upper CI bound per day                           │
+# │ future_dates             │ DatetimeIndex for forecast dates                 │
+# └──────────────────────────┴──────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │ PLOTTING OBJECTS                                                            │
+# ├──────────────────────────┬──────────────────────────────────────────────────┤
+# │ fig                      │ Primary Figure (20×14)                           │
+# │ fig2                     │ Secondary Figure (16×10)                         │
+# │ graph                    │ Axes - Candlestick + predictions overlay         │
+# │ ax_res                   │ Axes - Residuals scatter plot                    │
+# │ ax_price                 │ Axes - Forecast line with CI band                │
+# │ ax_ci                    │ Axes - CI width bar chart                        │
+# │ annotation               │ Hover tooltip (matplotlib Annotation)            │
+# │ actual_dnums             │ Date numbers for hover lookup                    │
+# │ pred_dnums               │ Date numbers for hover lookup                    │
+# │ future_dnums             │ Date numbers for hover lookup                    │
+# │ forecast_df              │ pd.DataFrame → future_predictions_pytorch.csv    │
+# └──────────────────────────┴──────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │ UTILITY FUNCTIONS                                                           │
+# ├─────────────────────────────────────────────────────────────────────────────┤
+# │ TeeLogger                │ Dual-output logger (terminal + file)             │
+# ├─────────────────────────────────────────────────────────────────────────────┤
+# │ get_dynamic_dropout()    │ Linear annealing schedule                        │
+# ├─────────────────────────────────────────────────────────────────────────────┤
+# │ set_dropout()            │ In-place dropout rate setter                     │
+# ├─────────────────────────────────────────────────────────────────────────────┤
+# │ build_sequences()        │ Sliding window sequence builder                  │
+# ├─────────────────────────────────────────────────────────────────────────────┤
+# │ choose_chart_interactive() │ CLI ticker input with search                   │
+# ├─────────────────────────────────────────────────────────────────────────────┤
+# │ finder()                 │ yf.Search wrapper                                │
+# └─────────────────────────────────────────────────────────────────────────────┘
+#
+# ┌───────────────────────────────────────────────────────────────────────────────────┐
+# │ TORCH_OPTIMIZER REFERENCE (Strengths, Weaknesses & Speed)                         │
+# ├──────────────┬──────────┬────────────────────────────┼────────────────────────────┤
+# │ Optimizer    │ Speed    │ Strengths                  │ Weaknesses                 │
+# ├──────────────┼──────────┼────────────────────────────┼────────────────────────────┤
+# │ AccSGD       │ Fast     │ Accelerated, good for CNN  │ Can be unstable            │
+# │ AdaBelief    │ Fast     │ Fast conv, good generaliz. │ Epsilon sensitive          │
+# │ AdaBound     │ Med      │ Adam to SGD transition     │ Hyperparam sensitive       │
+# │ Adafactor    │ Med      │ Low memory footprint       │ Slower to converge         │
+# │ Adahessian   │ Slow     │ Superb 2nd order conv.     │ Compute & memory heavy     │
+# │ AdaMod       │ Med      │ Protects from sudden jumps │ Extra hyperparameters      │
+# │ AdamP        │ Fast     │ Prevents weight norm grow  │ Context-dependent          │
+# │ AggMo        │ Med      │ Dampens oscillations       │ Higher memory usage        │
+# │ Apollo       │ Med      │ Robust to ill-conditioned  │ Less practically tested    │
+# │ DiffGrad     │ Fast     │ Friction-based LR change   │ Slower initial steps       │
+# │ Lamb         │ V.Fast   │ Great for large batch size │ Diverges on small batch    │ # - SUCCESS
+# │ LARS         │ V.Fast   │ Enables huge batch sizes   │ Needs careful warmup       │ # - FAILED
+# │ MADGRAD      │ Fast     │ SGD generaliz + Adam speed │ Needs extra float buffer   │
+# │ NovoGrad     │ Med      │ Good for large NLP models  │ Tricky for vision tasks    │
+# │ PID          │ Med      │ Helps dampen oscillations  │ Needs P,I,D tuning         │
+# │ QHAdam       │ Fast     │ Flexible (Quasi-Hyper)     │ Hard to tune (v1, v2)      │
+# │ QHM          │ Med      │ Bridges SGD and SGDM       │ Needs careful tuning       │
+# │ RAdam        │ Fast     │ Automated warmup, robust   │ Slightly slow initially    │
+# │ Ranger       │ Fast     │ RAdam + LookAhead (SOTA)   │ Uses more compute/mem      │
+# │ RangerQH     │ Fast     │ QHAdam + LookAhead         │ Complex hyperparams        │
+# │ RangerVA     │ Fast     │ Ranger + Variance Adaption │ Complex implementation     │
+# │ SGDP         │ Fast     │ Controls weight growth     │ Needs weight decay         │
+# │ SGDW         │ Fast     │ Decouples weight decay     │ Still SGD-like speed       │
+# │ Shampoo      │ V.Slow   │ Extraordinary step conv.   │ Extreme matrix compute     │
+# │ SWATS        │ Fast     │ Adam to SGD automated      │ Switch heuristic varies    │
+# │ Yogi         │ Fast     │ Controls LR increase       │ Slow initial phase         │
+# └──────────────┴──────────┴────────────────────────────┴────────────────────────────┘
+# took me like an hour to format </3
 # ==============================================================================
 
 if __name__ == "__main__":
