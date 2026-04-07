@@ -144,6 +144,7 @@ final_dropout = 0.1
 train_time = 2
 num_monte_carlo_runs = 100  # Number of forward passes for Monte Carlo Dropout
 optimizer_name = "Ranger"  # Name of optimizer from torch_optimizer (e.g. "Ranger", "Adafactor", "RAdam")
+show_batch_progress = False  # False is faster; per-batch tqdm adds Python overhead.
 
 device_type = input("Enter device type (cpu/gpu): ").strip().lower()
 
@@ -158,6 +159,9 @@ chart_name_plot = chart_info.get("longName") or chart
 chart_name_plot_short = chart_info.get("shortName") or chart
 
 torch.backends.cuda.matmul.allow_tf32 = True
+torch.backends.cudnn.allow_tf32 = True
+torch.backends.cudnn.benchmark = True
+torch.set_float32_matmul_precision("high")
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = (
     "expandable_segments:True,max_split_size_mb:128,garbage_collection_threshold:0.8"
@@ -376,13 +380,17 @@ def main():
 
     dataset = SequenceDataset(x_train, y_train)
     use_gpu = device.type == "cuda"
+    # On Windows, DataLoader uses spawn and re-imports this module in worker processes.
+    # Because this script has top-level interactive input(), keep workers at 0 to prevent
+    # repeated ticker/device prompts from child processes.
+    use_worker_processes = use_gpu and (os.name != "nt")
     dataloader = DataLoader(
         dataset,
         batch_size=batch_size if batch_size < len(dataset) else len(dataset),
         shuffle=True,
         pin_memory=use_gpu,
-        num_workers=(2 if use_gpu else 0),
-        persistent_workers=use_gpu,
+        num_workers=(2 if use_worker_processes else 0),
+        persistent_workers=use_worker_processes,
     )
 
     model = LSTMModel(
@@ -419,19 +427,24 @@ def main():
         epochs, desc="Epochs", unit="epoch", colour="blue", ascii=False
     ):
         model.train()
-        epoch_loss = 0.0
+        epoch_loss_accum = torch.zeros((), device=device)
         new_p = get_dynamic_dropout(epoch, epochs, initial_dropout, final_dropout)
         set_dropout(model, new_p)
 
-        batch_iter = tqdm(
-            dataloader,
-            desc=f"Epoch {epoch + 1}/{epochs}",
-            leave=False,
-            unit="batch",
-            colour="blue",
-            ascii=False,
-        )
-        for xb, yb in batch_iter:
+        if show_batch_progress:
+            batch_iter = tqdm(
+                dataloader,
+                desc=f"Epoch {epoch + 1}/{epochs}",
+                leave=False,
+                unit="batch",
+                colour="blue",
+                ascii=False,
+                mininterval=0.5,
+            )
+        else:
+            batch_iter = dataloader
+
+        for batch_idx, (xb, yb) in enumerate(batch_iter, start=1):
             xb = xb.to(device, non_blocking=use_gpu)
             yb = yb.to(device, non_blocking=use_gpu).unsqueeze(1)
             optimizer.zero_grad(set_to_none=True)
@@ -439,14 +452,15 @@ def main():
             loss = criterion(outputs, yb)
             loss.backward()
             optimizer.step()
-            epoch_loss += loss.item() * xb.size(0)
+            epoch_loss_accum += loss.detach() * xb.size(0)
 
-            # update batch progress with current batch loss
-            batch_iter.set_postfix(
-                {"batch_loss": f"{loss.item():.6f}", "dropout": f"{new_p:.3f}"}
-            )
+            # Avoid per-batch .item() sync; update UI periodically.
+            if show_batch_progress and (
+                (batch_idx % 25 == 0) or (batch_idx == len(dataloader))
+            ):
+                batch_iter.set_postfix({"dropout": f"{new_p:.3f}"})
 
-        epoch_loss /= len(dataset)
+        epoch_loss = (epoch_loss_accum / len(dataset)).item()
         if writer is not None:
             try:
                 writer.add_scalar("Loss/train", epoch_loss, epoch, walltime=time.time())
