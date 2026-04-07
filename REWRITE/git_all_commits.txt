@@ -1,0 +1,38 @@
+ffa2857 Add .gitattributes and .gitignore.
+56c3a5a Update future-Eric: 30-day target, MAE loss, residual GBR, lower dropout
+6932440 Add project files and .gitignore (exclude confidential files)
+313cd99 added crosshair cursor
+f0ded6d trying to add cursor labels
+fd7ec32 changed how minmax scaler functions
+7451794 modifying ai prediction
+adfa880 Refactor forecasting model to support multi-step predictions and implement early stopping
+a244134 im tired boss </3
+a9ac210 fixed disappearing predicted days
+61e4c16 oh my days
+d28e8f5 sigmoid implemented
+e8fc461 end the suffering
+66b0a20 added system to check earliest date for opening price
+7701357 added cursor annotation
+7427a62 added pytorch varient
+65b9eeb ahhh
+f6d1150 too many changes to say
+7c169d7 Track large model files with Git LFS
+7ee85de imporoved monte carlo dropout
+e0a0784 feat: Implement PyTorch LSTM model for interactive stock price prediction with dynamic dropout, TensorBoard logging, and output files.
+bec59bb feat: Implement a new PyTorch-based prediction model, update prediction data and plots, and add new dependencies.
+fd3f6be feat: Implement a PyTorch LSTM model for stock price prediction with Optuna hyperparameter optimization, including data fetching, preprocessing, and interactive configuration.
+abc5ee9 feat: Implement Optuna hyperparameter optimization for a PyTorch LSTM stock prediction model, including data preprocessing and interactive chart selection.
+d966342 feat: Implement an LSTM stock price prediction model with Optuna hyperparameter optimization and data acquisition using yfinance.
+51c481e feat: Implement PyTorch LSTM stock prediction model with Optuna hyperparameter tuning and add associated analysis scripts.
+5bf22a7 added dictionary to compute script
+b9711de feat: Implement PyTorch LSTM model with bidirectional layers and multi-feature input for stock prediction, generating new predictions and a plot.
+26842fb feat: Implement PyTorch LSTM model with multi-feature input including MACD and Bollinger Bands, add Monte Carlo Dropout, and integrate terminal activity logging.
+39fdd76 docs: Add a comprehensive README.md detailing the stock price prediction project's features, setup, usage, and recent improvements.
+21462ff feat: Implement PyTorch LSTM stock prediction with interactive ticker selection, technical indicators, bidirectional model, and output logging.
+30ae5af feat: Implement PyTorch LSTM model with feature engineering, interactive ticker selection, and detailed plotting.
+b035389 Fix pytorch_fixed.py bugs and improve training: datetime import bug, remove deprecated verbose arg, increase epochs to 150, increase early stop patience to 30
+8023d29 Fix pytorch_fixed.py bugs and improve training: datetime import bug, remove deprecated verbose arg, increase epochs to 150, increase early stop patience to 30
+5c7f01d updated LSTM model
+43f741e gui implementation
+2cfdc49 updated gui
+d2587e6 feat: add conversation logging, update prediction data, and initialize environment dependencies

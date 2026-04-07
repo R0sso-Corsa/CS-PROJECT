@@ -1,5 +1,6 @@
 import time
 import sys
+import triton
 
 script_start_time = time.time()
 import torch_optimizer as optim  # EXTENDED LIST OF TORCH OPTIMISERS [IMPORTANT == GO THROUGH EFFICIENT OPTIONS (100+ to use)]
@@ -22,8 +23,9 @@ import torch.nn as nn
 # progress bars
 from tqdm.auto import trange, tqdm
 
-# Disable MIOpen (cudnn) to avoid RuntimeError: miopenStatusUnknownError with LSTM on ROCm
-torch.backends.cudnn.enabled = False
+# Keep cuDNN enabled on CUDA for fast LSTM kernels.
+# Disable only on ROCm where some users hit MIOpen runtime issues.
+torch.backends.cudnn.enabled = torch.version.hip is None
 from torch.utils.data import Dataset, DataLoader
 
 # TensorBoard writer: prefer torch's bundled SummaryWriter, fall back to tensorboardX, else disable
@@ -136,11 +138,12 @@ chart_info = yf.Ticker(chart).info
 prediction_days = 30
 future_day = 30
 epochs = 40
-batch_size = 32
+batch_size = 16
 initial_dropout = 0.6
 final_dropout = 0.1
 train_time = 2
 num_monte_carlo_runs = 100  # Number of forward passes for Monte Carlo Dropout
+optimizer_name = "Ranger"  # Name of optimizer from torch_optimizer (e.g. "Ranger", "Adafactor", "RAdam")
 
 device_type = input("Enter device type (cpu/gpu): ").strip().lower()
 
@@ -154,18 +157,30 @@ print(f"Using device: {device}")
 chart_name_plot = chart_info.get("longName") or chart
 chart_name_plot_short = chart_info.get("shortName") or chart
 
-os.environ["DNNL_VERBOSE"] = "2"  # 0 = off, 1 = summary, 2 = detailed
-os.environ["CUDNN_LOGINFO_DBG"] = "1"
-os.environ["CUDNN_LOGDEST_DBG"] = "stdout"
-os.environ["PYTORCH_JIT_LOG_LEVEL"] = ">>"
-os.environ["PYTORCH_JIT_LOGS"] = "all"
+torch.backends.cuda.matmul.allow_tf32 = True
 
-torch._logging.set_logs(
-    graph_breaks=True,
-    recompiles=True,
-    dynamo=20,
-    inductor=20,
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = (
+    "expandable_segments:True,max_split_size_mb:128,garbage_collection_threshold:0.8"
 )
+os.environ["HSA_ENABLE_SDMA"] = "0"
+os.environ["GPU_MAX_HEAP_SIZE"] = "100"
+os.environ["GPU_MAX_ALLOC_PERCENT"] = "100"
+os.environ["TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL"] = "1"
+# Keep deep debug logs off by default; they add major runtime overhead.
+os.environ["DNNL_VERBOSE"] = "0"
+os.environ["CUDNN_LOGINFO_DBG"] = "0"
+os.environ["PYTORCH_JIT_LOG_LEVEL"] = ""
+os.environ["PYTORCH_JIT_LOGS"] = ""
+os.environ["TRITON_HIP_USE_BLOCK_PINGPONG"] = "1"  # RDNA4-specific scheduling
+torch.cuda.set_per_process_memory_fraction(1.00, device=0)
+
+if os.environ.get("TORCH_VERBOSE_LOGS", "0") == "1":
+    torch._logging.set_logs(
+        graph_breaks=True,
+        recompiles=True,
+        dynamo=20,
+        inductor=20,
+    )
 
 
 # ----------------------- End Configuration -----------------------
@@ -179,17 +194,15 @@ def get_dynamic_dropout(epoch, total_epochs, initial_rate=0.5, final_rate=0.1):
 
 class SequenceDataset(Dataset):
     def __init__(self, sequences, targets):
-        self.sequences = sequences
-        self.targets = targets
+        # Materialize tensors once to avoid per-sample numpy->tensor conversion overhead.
+        self.sequences = torch.from_numpy(sequences).float()
+        self.targets = torch.from_numpy(np.asarray(targets)).float()
 
     def __len__(self):
         return len(self.sequences)
 
     def __getitem__(self, idx):
-        return (
-            torch.from_numpy(self.sequences[idx]).float(),
-            torch.from_numpy(np.array(self.targets[idx])).float(),
-        )
+        return self.sequences[idx], self.targets[idx]
 
 
 class LSTMModel(nn.Module):
@@ -362,17 +375,21 @@ def main():
         return
 
     dataset = SequenceDataset(x_train, y_train)
+    use_gpu = device.type == "cuda"
     dataloader = DataLoader(
         dataset,
         batch_size=batch_size if batch_size < len(dataset) else len(dataset),
         shuffle=True,
+        pin_memory=use_gpu,
+        num_workers=(2 if use_gpu else 0),
+        persistent_workers=use_gpu,
     )
 
     model = LSTMModel(
         input_size=8, hidden_size=500, num_layers=4, dropout=initial_dropout
     ).to(device)
     criterion = nn.MSELoss()
-    optimizer = optim.LARS(model.parameters(), weight_decay=0.05)
+    optimizer = getattr(optim, optimizer_name)(model.parameters(), weight_decay=0.05)
 
     # tensorboard writer (create only if available)
     log_dir = os.path.join("logs", "fit", dt.datetime.now().strftime("%Y%m%d-%H%M%S"))
@@ -415,9 +432,9 @@ def main():
             ascii=False,
         )
         for xb, yb in batch_iter:
-            xb = xb.to(device)
-            yb = yb.to(device).unsqueeze(1)
-            optimizer.zero_grad()
+            xb = xb.to(device, non_blocking=use_gpu)
+            yb = yb.to(device, non_blocking=use_gpu).unsqueeze(1)
+            optimizer.zero_grad(set_to_none=True)
             outputs = model(xb)
             loss = criterion(outputs, yb)
             loss.backward()
@@ -544,8 +561,8 @@ def main():
     # predict
     # Use model.train() instead of eval() to keep dropout active for jagged (stochastic) predictions
     model.train()
-    with torch.no_grad():
-        xt = torch.from_numpy(x_test).float().to(device)
+    with torch.inference_mode():
+        xt = torch.from_numpy(x_test).float().to(device, non_blocking=use_gpu)
         preds = model(xt).cpu().numpy()
 
     # Inverse transform predictions. Need to create a dummy array for the additional features (Volume, SMA_14, RSI_14).
@@ -646,15 +663,17 @@ def main():
             []
         )  # Initialized monte_carlo_predictions_for_day
         input_seq = real_data[-prediction_days:].reshape(1, prediction_days, 8)
-        t_in = torch.from_numpy(input_seq).float().to(device)
+        t_in = torch.from_numpy(input_seq).float().to(device, non_blocking=use_gpu)
 
         # Enable dropout during inference for Monte Carlo
         model.train()  # Set model to training mode to enable dropout
-        for _ in range(num_monte_carlo_runs):
-            with (
-                torch.no_grad()
-            ):  # Still no_grad for predictions, but dropout is active
-                monte_carlo_predictions_for_day.append(model(t_in).cpu().numpy()[0, 0])
+        with torch.no_grad():  # Still no_grad for predictions, but dropout is active
+            for _ in range(num_monte_carlo_runs):
+                monte_carlo_predictions_for_day.append(model(t_in).squeeze())
+
+        monte_carlo_predictions_for_day = (
+            torch.stack(monte_carlo_predictions_for_day).detach().cpu().numpy()
+        )
 
         # Set model back to evaluation mode after Monte Carlo runs
         model.eval()
@@ -664,9 +683,7 @@ def main():
 
         # USE SINGLE REALIZATION FOR JAGGED TRAJECTORY
         # We take the first run as the "path" we follow
-        next_pred = monte_carlo_predictions_for_day[
-            0
-        ]  # MODIFIED to use single realization
+        next_pred = float(monte_carlo_predictions_for_day[0])  # single realization path
 
         future_predictions_std.append(
             np.std(monte_carlo_predictions_for_day)
@@ -961,7 +978,9 @@ def main():
     out_dir = os.getcwd()
     present_day = dt.datetime.now().date()
     fig.savefig(
-        os.path.join(out_dir, f"{chart_name_plot_short}_{present_day}.png"),
+        os.path.join(
+            out_dir, f"{optimizer_name}_{chart_name_plot_short}_{present_day}.png"
+        ),
         dpi=300,
         bbox_inches="tight",
     )
@@ -1040,7 +1059,8 @@ def main():
     fig2.tight_layout()
     fig2.savefig(
         os.path.join(
-            out_dir, f"{chart_name_plot_short}_forecast_detail_{present_day}.png"
+            out_dir,
+            f"{optimizer_name}_{chart_name_plot_short}_forecast_detail_{present_day}.png",
         ),
         dpi=300,
         bbox_inches="tight",
@@ -1219,14 +1239,14 @@ def main():
 # ├──────────────┬──────────┬────────────────────────────┼────────────────────────────┤
 # │ Optimizer    │ Speed    │ Strengths                  │ Weaknesses                 │
 # ├──────────────┼──────────┼────────────────────────────┼────────────────────────────┤
-# │ AccSGD       │ Fast     │ Accelerated, good for CNN  │ Can be unstable            │
-# │ AdaBelief    │ Fast     │ Fast conv, good generaliz. │ Epsilon sensitive          │
-# │ AdaBound     │ Med      │ Adam to SGD transition     │ Hyperparam sensitive       │
-# │ Adafactor    │ Med      │ Low memory footprint       │ Slower to converge         │
-# │ Adahessian   │ Slow     │ Superb 2nd order conv.     │ Compute & memory heavy     │
-# │ AdaMod       │ Med      │ Protects from sudden jumps │ Extra hyperparameters      │
+# │ AccSGD       │ Fast     │ Accelerated, good for CNN  │ Can be unstable            │ # - FAILED
+# │ AdaBelief    │ Fast     │ Fast conv, good generaliz. │ Epsilon sensitive          │ # - SUCCESS
+# │ AdaBound     │ Med      │ Adam to SGD transition     │ Hyperparam sensitive       │ # - FAILED
+# │ Adafactor    │ Med      │ Low memory footprint       │ Slower to converge         │ # - SUCCESS
+# │ Adahessian   │ Slow     │ Superb 2nd order conv.     │ Compute & memory heavy     │ # - PASSED
+# │ AdaMod       │ Med      │ Protects from sudden jumps │ Extra hyperparameters      │ # - SUCCESS
 # │ AdamP        │ Fast     │ Prevents weight norm grow  │ Context-dependent          │
-# │ AggMo        │ Med      │ Dampens oscillations       │ Higher memory usage        │
+# │ AggMo        │ Med      │ Dampens oscillations       │ Higher memory usage        │ # - FAILED
 # │ Apollo       │ Med      │ Robust to ill-conditioned  │ Less practically tested    │
 # │ DiffGrad     │ Fast     │ Friction-based LR change   │ Slower initial steps       │
 # │ Lamb         │ V.Fast   │ Great for large batch size │ Diverges on small batch    │ # - SUCCESS
@@ -1237,12 +1257,12 @@ def main():
 # │ QHAdam       │ Fast     │ Flexible (Quasi-Hyper)     │ Hard to tune (v1, v2)      │
 # │ QHM          │ Med      │ Bridges SGD and SGDM       │ Needs careful tuning       │
 # │ RAdam        │ Fast     │ Automated warmup, robust   │ Slightly slow initially    │
-# │ Ranger       │ Fast     │ RAdam + LookAhead (SOTA)   │ Uses more compute/mem      │
+# │ Ranger       │ Fast     │ RAdam + LookAhead (SOTA)   │ Uses more compute/mem      │ # - SUCCESS
 # │ RangerQH     │ Fast     │ QHAdam + LookAhead         │ Complex hyperparams        │
 # │ RangerVA     │ Fast     │ Ranger + Variance Adaption │ Complex implementation     │
 # │ SGDP         │ Fast     │ Controls weight growth     │ Needs weight decay         │
 # │ SGDW         │ Fast     │ Decouples weight decay     │ Still SGD-like speed       │
-# │ Shampoo      │ V.Slow   │ Extraordinary step conv.   │ Extreme matrix compute     │
+# │ Shampoo      │ V.Slow   │ Extraordinary step conv.   │ Extreme matrix compute     │ # - FAILED
 # │ SWATS        │ Fast     │ Adam to SGD automated      │ Switch heuristic varies    │
 # │ Yogi         │ Fast     │ Controls LR increase       │ Slow initial phase         │
 # └──────────────┴──────────┴────────────────────────────┴────────────────────────────┘
