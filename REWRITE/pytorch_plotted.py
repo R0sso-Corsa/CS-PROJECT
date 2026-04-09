@@ -132,9 +132,6 @@ def choose_chart_interactive():
             return choice
 
 
-# ask user for chart symbol (interactive search available)
-chart = choose_chart_interactive()
-chart_info = yf.Ticker(chart).info
 prediction_days = 30
 future_day = 30
 epochs = 40
@@ -144,47 +141,8 @@ final_dropout = 0.1
 train_time = 2
 num_monte_carlo_runs = 100  # Number of forward passes for Monte Carlo Dropout
 optimizer_name = "Ranger"  # Name of optimizer from torch_optimizer (e.g. "Ranger", "Adafactor", "RAdam")
-show_batch_progress = False  # False is faster; per-batch tqdm adds Python overhead.
-
-device_type = input("Enter device type (cpu/gpu): ").strip().lower()
-
-device = torch.device(
-    "cuda" if (device_type == "gpu" and torch.cuda.is_available()) else "cpu"
-)
-
-print(f"Using device: {device}")
-
-
-chart_name_plot = chart_info.get("longName") or chart
-chart_name_plot_short = chart_info.get("shortName") or chart
-
-torch.backends.cuda.matmul.allow_tf32 = True
-torch.backends.cudnn.allow_tf32 = True
-torch.backends.cudnn.benchmark = True
-torch.set_float32_matmul_precision("high")
-
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = (
-    "expandable_segments:True,max_split_size_mb:128,garbage_collection_threshold:0.8"
-)
-os.environ["HSA_ENABLE_SDMA"] = "0"
-os.environ["GPU_MAX_HEAP_SIZE"] = "100"
-os.environ["GPU_MAX_ALLOC_PERCENT"] = "100"
-os.environ["TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL"] = "1"
-# Keep deep debug logs off by default; they add major runtime overhead.
-os.environ["DNNL_VERBOSE"] = "0"
-os.environ["CUDNN_LOGINFO_DBG"] = "0"
-os.environ["PYTORCH_JIT_LOG_LEVEL"] = ""
-os.environ["PYTORCH_JIT_LOGS"] = ""
-os.environ["TRITON_HIP_USE_BLOCK_PINGPONG"] = "1"  # RDNA4-specific scheduling
-torch.cuda.set_per_process_memory_fraction(1.00, device=0)
-
-if os.environ.get("TORCH_VERBOSE_LOGS", "0") == "1":
-    torch._logging.set_logs(
-        graph_breaks=True,
-        recompiles=True,
-        dynamo=20,
-        inductor=20,
-    )
+show_batch_progress = True  # False is faster; per-batch tqdm adds Python overhead.
+use_amp = False  # Often slower for LSTM on ROCm/AMD; enable manually to test.
 
 
 # ----------------------- End Configuration -----------------------
@@ -271,6 +229,47 @@ sys.stderr = sys.stdout  # thankfully captures the Traceback/Errors
 
 
 def main():
+    # ask user for chart symbol (interactive search available)
+    chart = choose_chart_interactive()
+    chart_info = yf.Ticker(chart).info
+    chart_name_plot = chart_info.get("longName") or chart
+    chart_name_plot_short = chart_info.get("shortName") or chart
+
+    device_type = input("Enter device type (cpu/gpu): ").strip().lower()
+    device = torch.device(
+        "cuda" if (device_type == "gpu" and torch.cuda.is_available()) else "cpu"
+    )
+    print(f"Using device: {device}")
+
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
+    torch.backends.cudnn.benchmark = True
+    torch.set_float32_matmul_precision("high")
+
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = (
+        "expandable_segments:True,max_split_size_mb:128,garbage_collection_threshold:0.8"
+    )
+    os.environ["HSA_ENABLE_SDMA"] = "0"
+    os.environ["GPU_MAX_HEAP_SIZE"] = "100"
+    os.environ["GPU_MAX_ALLOC_PERCENT"] = "100"
+    os.environ["TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL"] = "1"
+    # Keep deep debug logs off by default; they add major runtime overhead.
+    os.environ["DNNL_VERBOSE"] = "0"
+    os.environ["CUDNN_LOGINFO_DBG"] = "0"
+    os.environ["PYTORCH_JIT_LOG_LEVEL"] = ""
+    os.environ["PYTORCH_JIT_LOGS"] = ""
+    os.environ["TRITON_HIP_USE_BLOCK_PINGPONG"] = "1"  # RDNA4-specific scheduling
+
+    if device.type == "cuda":
+        torch.cuda.set_per_process_memory_fraction(1.00, device=0)
+
+    if os.environ.get("TORCH_VERBOSE_LOGS", "0") == "1":
+        torch._logging.set_logs(
+            graph_breaks=True,
+            recompiles=True,
+            dynamo=20,
+            inductor=20,
+        )
 
     print(f"\n{'=' * 60}")
     print(f"ANALYZING: {chart_name_plot} ({chart})")
@@ -380,10 +379,8 @@ def main():
 
     dataset = SequenceDataset(x_train, y_train)
     use_gpu = device.type == "cuda"
-    # On Windows, DataLoader uses spawn and re-imports this module in worker processes.
-    # Because this script has top-level interactive input(), keep workers at 0 to prevent
-    # repeated ticker/device prompts from child processes.
-    use_worker_processes = use_gpu and (os.name != "nt")
+    # Interactive input is now inside main(), so worker spawn is safe on Windows.
+    use_worker_processes = use_gpu
     dataloader = DataLoader(
         dataset,
         batch_size=batch_size if batch_size < len(dataset) else len(dataset),
@@ -398,6 +395,8 @@ def main():
     ).to(device)
     criterion = nn.MSELoss()
     optimizer = getattr(optim, optimizer_name)(model.parameters(), weight_decay=0.05)
+    amp_enabled = bool(use_amp and (device.type == "cuda") and (torch.version.hip is None))
+    amp_scaler = torch.amp.GradScaler("cuda", enabled=amp_enabled)
 
     # tensorboard writer (create only if available)
     log_dir = os.path.join("logs", "fit", dt.datetime.now().strftime("%Y%m%d-%H%M%S"))
@@ -448,10 +447,12 @@ def main():
             xb = xb.to(device, non_blocking=use_gpu)
             yb = yb.to(device, non_blocking=use_gpu).unsqueeze(1)
             optimizer.zero_grad(set_to_none=True)
-            outputs = model(xb)
-            loss = criterion(outputs, yb)
-            loss.backward()
-            optimizer.step()
+            with torch.amp.autocast(device_type="cuda", enabled=amp_enabled):
+                outputs = model(xb)
+                loss = criterion(outputs, yb)
+            amp_scaler.scale(loss).backward()
+            amp_scaler.step(optimizer)
+            amp_scaler.update()
             epoch_loss_accum += loss.detach() * xb.size(0)
 
             # Avoid per-batch .item() sync; update UI periodically.
