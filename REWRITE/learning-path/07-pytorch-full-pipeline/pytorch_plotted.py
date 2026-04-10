@@ -1,8 +1,12 @@
 import time
 import sys
 import triton
+from pathlib import Path
 
 script_start_time = time.time()
+REWRITE_ROOT = next(p for p in Path(__file__).resolve().parents if p.name == "REWRITE")
+LEGACY_LOG_PATH = REWRITE_ROOT / "artifacts" / "legacy" / "logs" / "terminal_activity.log"
+LEGACY_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
 import torch_optimizer as optim  # EXTENDED LIST OF TORCH OPTIMISERS [IMPORTANT == GO THROUGH EFFICIENT OPTIONS (100+ to use)]
 import os
 import datetime as dt
@@ -224,7 +228,7 @@ def build_sequences(scaled_values, prediction_days):
     return x, y
 
 
-sys.stdout = TeeLogger("terminal_activity.log")
+sys.stdout = TeeLogger(str(LEGACY_LOG_PATH))
 sys.stderr = sys.stdout  # thankfully captures the Traceback/Errors
 
 

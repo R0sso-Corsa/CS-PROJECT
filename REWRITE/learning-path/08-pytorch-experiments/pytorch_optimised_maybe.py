@@ -1,12 +1,19 @@
 import time
 import sys
+from pathlib import Path
 
 script_start_time = time.time()
-
+REWRITE_ROOT = next(p for p in Path(__file__).resolve().parents if p.name == "REWRITE")
+LEGACY_LOG_PATH = REWRITE_ROOT / "artifacts" / "legacy" / "logs" / "terminal_activity.log"
+LEGACY_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+import torch_optimizer as optim
 import os
 import datetime as dt
 import numpy as np
 import pandas as pd
+import matplotlib
+
+matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
 from matplotlib import dates as mdates
 import yfinance as yf
@@ -19,6 +26,11 @@ import torch.nn as nn
 from tqdm.auto import trange, tqdm
 
 torch.backends.cudnn.enabled = False
+
+if torch.cuda.is_available():
+    torch.backends.cudnn.benchmark = True
+    torch.set_float32_matmul_precision("high")
+
 from torch.utils.data import Dataset, DataLoader
 
 try:
@@ -38,64 +50,22 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 import scipy.stats as st
 import math
-
-
-# import argparse
-
-# parser = argparse.ArgumentParser(description="AI Price Prediction LSTM Model")
-# parser.add_argument(
-#     "--ticker", "-t", type=str, default=None, help="Ticker symbol (e.g., BTC-GBP, AAPL)"
-# )
-# parser.add_argument(
-#     "--device",
-#     "-d",
-#     type=str,
-#     default="cpu",
-#     choices=["cpu", "gpu"],
-#     help="Device type",
-# )
-# parser.add_argument(
-#     "--prediction-days", "-p", type=int, default=30, help="Number of prediction days"
-# )
-# parser.add_argument(
-#     "--future-days",
-#     "-f",
-#     type=int,
-#     default=30,
-#     help="Number of future days to forecast",
-# )
-# parser.add_argument(
-#     "--epochs", "-e", type=int, default=150, help="Number of training epochs"
-# )
-# parser.add_argument("--batch-size", "-b", type=int, default=32, help="Batch size")
-# parser.add_argument(
-#     "--init-dropout", type=float, default=0.3, help="Initial dropout rate"
-# )
-# parser.add_argument(
-#     "--final-dropout", type=float, default=0.1, help="Final dropout rate"
-# )
-# parser.add_argument(
-#     "--mc-runs", type=int, default=100, help="Monte Carlo runs for uncertainty"
-# )
-
-# args = parser.parse_args()
+import datetime
 
 
 class TeeLogger:
     def __init__(self, filename):
         self.terminal = sys.stdout
-        self.log = open(filename, "a", encoding="utf-8", errors="replace")
+        self.log = open(filename, "a", encoding="utf-8")
 
     def write(self, message):
         if message.strip():
-            timestamp = dt.datetime.now().strftime("[%Y-%m-%d %H:%M:%S] ")
+            timestamp = datetime.datetime.now().strftime("[%Y-%m-%d %H:%M:%S] ")
             self.log.write(timestamp + message + "\n")
         else:
             self.log.write(message)
-        try:
-            self.terminal.write(message)
-        except UnicodeEncodeError:
-            self.terminal.write(message.encode("ascii", "replace").decode("ascii"))
+
+        self.terminal.write(message)
         self.log.flush()
 
     def flush(self):
@@ -152,35 +122,44 @@ def choose_chart_interactive():
             return choice
 
 
-if args.ticker:
-    chart = args.ticker
-else:
-    chart = choose_chart_interactive()
-
+chart = "BTC-USD"
 chart_info = yf.Ticker(chart).info
-prediction_days = args.prediction_days
-future_day = args.future_days
-epochs = args.epochs
-batch_size = args.batch_size
-initial_dropout = args.init_dropout
-final_dropout = args.final_dropout
-val_split = 0.15
-num_monte_carlo_runs = args.mc_runs
+prediction_days = 30
+future_day = 30
+epochs = 40
+batch_size = 32
+initial_dropout = 0.6
+final_dropout = 0.1
+train_time = 2
+num_monte_carlo_runs = 100
 
-device_type = args.device
+device_type = "gpu"
+
 device = torch.device(
     "cuda" if (device_type == "gpu" and torch.cuda.is_available()) else "cpu"
 )
+
 print(f"Using device: {device}")
+
 
 chart_name_plot = chart_info.get("longName") or chart
 chart_name_plot_short = chart_info.get("shortName") or chart
 
-sys.stdout = TeeLogger("terminal_activity.log")
-sys.stderr = sys.stdout
+os.environ["DNNL_VERBOSE"] = "2"
+os.environ["CUDNN_LOGINFO_DBG"] = "1"
+os.environ["CUDNN_LOGDEST_DBG"] = "stdout"
+os.environ["PYTORCH_JIT_LOG_LEVEL"] = ">>"
+os.environ["PYTORCH_JIT_LOGS"] = "all"
+
+torch._logging.set_logs(
+    graph_breaks=True,
+    recompiles=True,
+    dynamo=20,
+    inductor=20,
+)
 
 
-def get_dynamic_dropout(epoch, total_epochs, initial_rate=0.3, final_rate=0.1):
+def get_dynamic_dropout(epoch, total_epochs, initial_rate=0.5, final_rate=0.1):
     return max(
         final_rate, initial_rate - (initial_rate - final_rate) * (epoch / total_epochs)
     )
@@ -202,7 +181,7 @@ class SequenceDataset(Dataset):
 
 
 class LSTMModel(nn.Module):
-    def __init__(self, input_size=8, hidden_size=256, num_layers=2, dropout=0.3):
+    def __init__(self, input_size=4, hidden_size=500, num_layers=2, dropout=0.5):
         super().__init__()
         self.layers = nn.ModuleList()
         in_size = input_size
@@ -227,6 +206,7 @@ class LSTMModel(nn.Module):
             dropout = self.layers[i + 1]
             out, _ = lstm(out)
             out = dropout(out)
+
         out = out[:, -1, :]
         out = self.fc(out)
         return out
@@ -248,41 +228,12 @@ def build_sequences(scaled_values, prediction_days):
     return x, y
 
 
-def compute_technical_indicators(df):
-    df["SMA_14"] = df["Close"].rolling(window=14).mean()
-    delta = df["Close"].diff(1)
-    gain = delta.where(delta > 0, 0)
-    loss = -delta.where(delta < 0, 0)
-    avg_gain = gain.ewm(com=13, adjust=False).mean()
-    avg_loss = loss.ewm(com=13, adjust=False).mean()
-    rs = avg_gain / avg_loss
-    df["RSI_14"] = 100 - (100 / (1 + rs))
-    exp1 = df["Close"].ewm(span=12, adjust=False).mean()
-    exp2 = df["Close"].ewm(span=26, adjust=False).mean()
-    df["MACD"] = exp1 - exp2
-    df["Signal_Line"] = df["MACD"].ewm(span=9, adjust=False).mean()
-    df["20_SMA"] = df["Close"].rolling(window=20).mean()
-    df["Std_Dev"] = df["Close"].rolling(window=20).std()
-    df["Upper_BB"] = df["20_SMA"] + (df["Std_Dev"] * 2)
-    df["Lower_BB"] = df["20_SMA"] - (df["Std_Dev"] * 2)
-    df.ffill(inplace=True)
-    df.bfill(inplace=True)
-    return df
-
-
-FEATURES = [
-    "Close",
-    "Volume",
-    "SMA_14",
-    "RSI_14",
-    "MACD",
-    "Signal_Line",
-    "Upper_BB",
-    "Lower_BB",
-]
+sys.stdout = TeeLogger(str(LEGACY_LOG_PATH))
+sys.stderr = sys.stdout
 
 
 def main():
+
     print(f"\n{'=' * 60}")
     print(f"ANALYZING: {chart_name_plot} ({chart})")
     print(f"SHORT NAME: {chart_name_plot_short}")
@@ -290,6 +241,7 @@ def main():
     print(f"{'=' * 60}\n")
 
     plt.style.use("dark_background")
+
     fig = plt.figure(figsize=(20, 14))
     fig.suptitle(
         f"{chart_name_plot} - Detailed Prediction Analysis",
@@ -315,46 +267,84 @@ def main():
         return
 
     print(data.head())
-    data = compute_technical_indicators(data)
 
-    train_end_idx = len(data) - prediction_days
-    if train_end_idx < prediction_days * 2:
+    data["SMA_14"] = data["Close"].rolling(window=14).mean()
+
+    delta = data["Close"].diff(1)
+    gain = delta.where(delta > 0, 0)
+    loss = -delta.where(delta < 0, 0)
+    avg_gain = gain.ewm(com=13, adjust=False).mean()
+    avg_loss = loss.ewm(com=13, adjust=False).mean()
+    rs = avg_gain / avg_loss
+    data["RSI_14"] = 100 - (100 / (1 + rs))
+
+    exp1 = data["Close"].ewm(span=12, adjust=False).mean()
+    exp2 = data["Close"].ewm(span=26, adjust=False).mean()
+    data["MACD"] = exp1 - exp2
+    data["Signal_Line"] = data["MACD"].ewm(span=9, adjust=False).mean()
+
+    data["20_SMA"] = data["Close"].rolling(window=20).mean()
+    data["Std_Dev"] = data["Close"].rolling(window=20).std()
+    data["Upper_BB"] = data["20_SMA"] + (data["Std_Dev"] * 2)
+    data["Lower_BB"] = data["20_SMA"] - (data["Std_Dev"] * 2)
+
+    data.ffill(inplace=True)
+    data.bfill(inplace=True)
+
+    scaler = MinMaxScaler(feature_range=(0, 1))
+    scaled_data = scaler.fit_transform(
+        data[
+            [
+                "Close",
+                "Volume",
+                "SMA_14",
+                "RSI_14",
+                "MACD",
+                "Signal_Line",
+                "Upper_BB",
+                "Lower_BB",
+            ]
+        ].values
+    )
+
+    training_data = scaled_data[:-prediction_days]
+    x_train, y_train = build_sequences(training_data, prediction_days)
+
+    if len(x_train) == 0:
         print(
-            f"ERROR: Insufficient data. Need at least {prediction_days * 2} rows for training."
+            f"ERROR: Insufficient data to create training sequences. Only {len(training_data)} data points available after feature engineering, but {prediction_days} prediction days are required."
+        )
+        print(
+            "Please choose a ticker with more historical data or reduce 'prediction_days'."
         )
         return
 
-    train_data = data.iloc[:train_end_idx].copy()
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaler.fit(train_data[FEATURES].values)
-
-    scaled_train = scaler.transform(train_data[FEATURES].values)
-    x_train_full, y_train_full = build_sequences(scaled_train, prediction_days)
-
-    val_size = int(len(x_train_full) * val_split)
-    train_size = len(x_train_full) - val_size
-
-    x_train = x_train_full[:train_size]
-    y_train = y_train_full[:train_size]
-    x_val = x_train_full[train_size:]
-    y_val = y_train_full[train_size:]
-
-    print(f"\nData split: {train_size} train samples, {val_size} validation samples")
-
-    train_dataset = SequenceDataset(x_train, y_train)
-    val_dataset = SequenceDataset(x_val, y_val)
-
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    dataset = SequenceDataset(x_train, y_train)
+    dataloader = DataLoader(
+        dataset,
+        batch_size=batch_size if batch_size < len(dataset) else len(dataset),
+        shuffle=True,
+        num_workers=4,
+        pin_memory=torch.cuda.is_available(),
+        persistent_workers=False if "win" in __import__("sys").platform else True,
+    )
 
     model = LSTMModel(
-        input_size=8, hidden_size=256, num_layers=2, dropout=initial_dropout
+        input_size=8, hidden_size=500, num_layers=4, dropout=initial_dropout
     ).to(device)
-    criterion = nn.HuberLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.5, patience=10
-    )
+
+    import sys
+
+    if hasattr(torch, "compile") and not sys.platform.startswith("win"):
+        try:
+            model = torch.compile(model)
+        except Exception as e:
+            print(f"torch.compile failed: {e}")
+
+    criterion = nn.MSELoss()
+    optimizer = optim.MADGRAD(model.parameters(), weight_decay=0.05)
+
+    scaler = torch.amp.GradScaler("cuda") if torch.cuda.is_available() else None
 
     log_dir = os.path.join("logs", "fit", dt.datetime.now().strftime("%Y%m%d-%H%M%S"))
     if SummaryWriter is not None:
@@ -375,10 +365,6 @@ def main():
         except Exception:
             pass
 
-    best_val_loss = float("inf")
-    patience_counter = 0
-    early_stop_patience = 30
-
     for epoch in trange(
         epochs, desc="Epochs", unit="epoch", colour="blue", ascii=False
     ):
@@ -388,7 +374,7 @@ def main():
         set_dropout(model, new_p)
 
         batch_iter = tqdm(
-            train_loader,
+            dataloader,
             desc=f"Epoch {epoch + 1}/{epochs}",
             leave=False,
             unit="batch",
@@ -396,59 +382,45 @@ def main():
             ascii=False,
         )
         for xb, yb in batch_iter:
-            xb = xb.to(device)
-            yb = yb.to(device).unsqueeze(1)
-            optimizer.zero_grad()
-            outputs = model(xb)
-            loss = criterion(outputs, yb)
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            optimizer.step()
+            xb = xb.to(device, non_blocking=True)
+            yb = yb.to(device, non_blocking=True).unsqueeze(1)
+            optimizer.zero_grad(set_to_none=True)
+
+            if scaler is not None:
+                with torch.amp.autocast("cuda"):
+                    outputs = model(xb)
+                    loss = criterion(outputs, yb)
+                scaler.scale(loss).backward()
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                outputs = model(xb)
+                loss = criterion(outputs, yb)
+                loss.backward()
+                optimizer.step()
+
             epoch_loss += loss.item() * xb.size(0)
+
             batch_iter.set_postfix(
                 {"batch_loss": f"{loss.item():.6f}", "dropout": f"{new_p:.3f}"}
             )
 
-        epoch_loss /= len(train_dataset)
-
-        model.eval()
-        val_loss = 0.0
-        with torch.no_grad():
-            for xb, yb in val_loader:
-                xb = xb.to(device)
-                yb = yb.to(device).unsqueeze(1)
-                outputs = model(xb)
-                loss = criterion(outputs, yb)
-                val_loss += loss.item() * xb.size(0)
-        val_loss /= len(val_dataset)
-
-        scheduler.step(val_loss)
-
+        epoch_loss /= len(dataset)
         if writer is not None:
             try:
-                writer.add_scalar("Loss/train", epoch_loss, epoch)
-                writer.add_scalar("Loss/val", val_loss, epoch)
-                writer.add_scalar("LR", optimizer.param_groups[0]["lr"], epoch)
+                writer.add_scalar("Loss/train", epoch_loss, epoch, walltime=time.time())
             except Exception:
                 pass
 
         tqdm.write(
-            f"Epoch {epoch + 1}/{epochs} — Train Loss: {epoch_loss:.6f} — Val Loss: {val_loss:.6f} — LR: {optimizer.param_groups[0]['lr']:.6f}"
+            f"Epoch {epoch + 1}/{epochs} — Loss: {epoch_loss:.6f} — Dropout: {new_p:.3f}"
         )
 
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
-            patience_counter = 0
-            torch.save(model.state_dict(), "best_model.pt")
-        else:
-            patience_counter += 1
-            if patience_counter >= early_stop_patience:
-                print(f"\nEarly stopping triggered at epoch {epoch + 1}")
-                model.load_state_dict(torch.load("best_model.pt"))
-                break
-
     if writer is not None:
-        writer.close()
+        try:
+            writer.close()
+        except Exception:
+            pass
 
     use_earliest_test = False
     if use_earliest_test:
@@ -462,11 +434,59 @@ def main():
         print(f"ERROR: No historical data found for {chart} in the test period.")
         return
 
-    test_data = compute_technical_indicators(test_data)
+    test_data["SMA_14"] = test_data["Close"].rolling(window=14).mean()
+    delta_test = test_data["Close"].diff(1)
+    gain_test = delta_test.where(delta_test > 0, 0)
+    loss_test = -delta_test.where(delta_test < 0, 0)
+    avg_gain_test = gain_test.ewm(com=13, adjust=False).mean()
+    avg_loss_test = loss_test.ewm(com=13, adjust=False).mean()
+    rs_test = avg_gain_test / avg_loss_test
+    test_data["RSI_14"] = 100 - (100 / (1 + rs_test))
+
+    exp1_test = test_data["Close"].ewm(span=12, adjust=False).mean()
+    exp2_test = test_data["Close"].ewm(span=26, adjust=False).mean()
+    test_data["MACD"] = exp1_test - exp2_test
+    test_data["Signal_Line"] = test_data["MACD"].ewm(span=9, adjust=False).mean()
+
+    test_data["20_SMA"] = test_data["Close"].rolling(window=20).mean()
+    test_data["Std_Dev"] = test_data["Close"].rolling(window=20).std()
+    test_data["Upper_BB"] = test_data["20_SMA"] + (test_data["Std_Dev"] * 2)
+    test_data["Lower_BB"] = test_data["20_SMA"] - (test_data["Std_Dev"] * 2)
+
+    test_data.ffill(inplace=True)
+    test_data.bfill(inplace=True)
+
     actual_prices = test_data["Close"].values
 
-    total_dataset = pd.concat([data[FEATURES], test_data[FEATURES]], axis=0)
-
+    total_dataset = pd.concat(
+        (
+            data[
+                [
+                    "Close",
+                    "Volume",
+                    "SMA_14",
+                    "RSI_14",
+                    "MACD",
+                    "Signal_Line",
+                    "Upper_BB",
+                    "Lower_BB",
+                ]
+            ],
+            test_data[
+                [
+                    "Close",
+                    "Volume",
+                    "SMA_14",
+                    "RSI_14",
+                    "MACD",
+                    "Signal_Line",
+                    "Upper_BB",
+                    "Lower_BB",
+                ]
+            ],
+        ),
+        axis=0,
+    )
     ai_inputs = total_dataset[
         len(total_dataset) - len(test_data) - prediction_days :
     ].values
@@ -476,15 +496,20 @@ def main():
     for i in range(prediction_days, len(ai_inputs)):
         x_test.append(ai_inputs[i - prediction_days : i, :])
     x_test = np.array(x_test)
+    x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 8))
 
     if len(x_test) == 0:
         print(f"ERROR: Insufficient data to create test sequences.")
         return
 
-    model.eval()
+    model.train()
     with torch.no_grad():
         xt = torch.from_numpy(x_test).float().to(device)
-        preds = model(xt).cpu().numpy()
+        if scaler is not None:
+            with torch.amp.autocast("cuda"):
+                preds = model(xt).cpu().numpy()
+        else:
+            preds = model(xt).cpu().numpy()
 
     dummy_features_test = np.zeros_like(preds, shape=(preds.shape[0], 7))
     full_preds_scaled = np.concatenate((preds, dummy_features_test), axis=1)
@@ -492,28 +517,32 @@ def main():
 
     mse = mean_squared_error(actual_prices, prediction_prices)
     rmse = math.sqrt(mse)
+    print(f"Root Mean Squared Error (RMSE) on test data: {rmse:.2f}")
+
     mae = mean_absolute_error(actual_prices, prediction_prices)
-    print(f"\nRoot Mean Squared Error (RMSE) on test data: {rmse:.2f}")
     print(f"Mean Absolute Error (MAE) on test data: {mae:.2f}")
 
     actual_changes = np.diff(actual_prices.flatten())
     predicted_prices_flat = prediction_prices.flatten()
     predicted_changes = np.diff(predicted_prices_flat)
+
     min_len = min(len(actual_changes), len(predicted_changes))
     actual_changes = actual_changes[:min_len]
     predicted_changes = predicted_changes[:min_len]
 
-    if len(actual_changes) > 0:
-        correct_directions = np.sum(
-            np.sign(actual_changes) == np.sign(predicted_changes)
-        )
-        directional_accuracy = (correct_directions / len(actual_changes)) * 100
-    else:
-        directional_accuracy = 0.0
+    directional_accuracy = np.nan
+
+    if len(actual_changes) > 0 and len(predicted_changes) > 0:
+        if np.sign(actual_changes).ndim == 1 and np.sign(predicted_changes).ndim == 1:
+            correct_directions = np.sum(
+                np.sign(actual_changes) == np.sign(predicted_changes)
+            )
+            directional_accuracy = (correct_directions / len(actual_changes)) * 100
 
     print(f"Directional Accuracy on test data: {directional_accuracy:.2f}%")
 
     prediction_dates = test_data.index
+    prediction_dates_offset = prediction_dates
 
     last_actual_value = float(np.asarray(actual_prices[-1]).flatten()[0])
     last_predicted_value = float(np.asarray(prediction_prices[-1]).flatten()[0])
@@ -526,7 +555,8 @@ def main():
     print(f"Last actual value: {last_actual_value:.2f}")
     print(f"Last predicted value: {last_predicted_value:.2f}")
     print(
-        f"Percentage difference: {color_code}{percentage_difference:.2f}%{reset_code}"
+        "Percentage difference:",
+        f"{color_code}{percentage_difference:.2f}%{reset_code}",
     )
 
     print(f"\n{'=' * 60}")
@@ -553,15 +583,23 @@ def main():
         model.train()
         for _ in range(num_monte_carlo_runs):
             with torch.no_grad():
-                monte_carlo_predictions_for_day.append(model(t_in).cpu().numpy()[0, 0])
+                if scaler is not None:
+                    with torch.amp.autocast("cuda"):
+                        monte_carlo_predictions_for_day.append(
+                            model(t_in).cpu().numpy()[0, 0]
+                        )
+                else:
+                    monte_carlo_predictions_for_day.append(
+                        model(t_in).cpu().numpy()[0, 0]
+                    )
 
         model.eval()
 
-        next_pred = np.mean(monte_carlo_predictions_for_day)
+        next_pred = monte_carlo_predictions_for_day[0]
 
         future_predictions_std.append(np.std(monte_carlo_predictions_for_day))
-        future_predictions.append(next_pred)
 
+        future_predictions.append(next_pred)
         new_row = np.array(
             [
                 next_pred,
@@ -575,7 +613,6 @@ def main():
             ]
         )
         real_data = np.vstack((real_data, new_row))
-        # if (day + 1) % 10 == 0:
         print(f"Predicted day {day + 1}/{future_day}")
 
     model.eval()
@@ -639,7 +676,11 @@ def main():
     print(f"Projected Change: {change_color}{projected_change:.2f}%{reset_code}\n")
 
     end = time.time()
-    print(f"Script concluded for a duration of {end - script_start_time:.2f} seconds")
+    print(
+        "Script concluded for a duration of {:.2f} seconds".format(
+            end - script_start_time
+        )
+    )
 
     plot_data = test_data.copy()
     if isinstance(plot_data.columns, pd.MultiIndex):
@@ -656,7 +697,7 @@ def main():
     )
 
     graph.plot(
-        prediction_dates,
+        prediction_dates_offset,
         prediction_prices,
         color="cyan",
         label="Predicted Prices (Test Period)",
@@ -669,6 +710,7 @@ def main():
         label=f"Future Forecast ({future_day} days)",
         linewidth=2.5,
     )
+
     graph.fill_between(
         future_dates,
         future_predictions_lower,
@@ -677,6 +719,7 @@ def main():
         alpha=0.2,
         label="95% Confidence Interval",
     )
+
     graph.axvline(
         x=last_date,
         color="orange",
@@ -719,9 +762,11 @@ def main():
     annotation.set_visible(False)
 
     actual_dnums = mdates.date2num(prediction_dates)
+    pred_dnums = mdates.date2num(prediction_dates_offset)
+    future_dnums = mdates.date2num(future_dates)
+
     actual_vals = np.array(actual_prices).flatten()
     pred_vals = prediction_prices.flatten()
-    future_dnums = mdates.date2num(future_dates)
     future_vals = future_predictions_prices.flatten()
 
     def motion_hover(event):
@@ -730,21 +775,37 @@ def main():
                 annotation.set_visible(False)
                 fig.canvas.draw_idle()
             return
+
         x = event.xdata
         if x is None:
             return
+
         idx_actual = np.argmin(np.abs(actual_dnums - x)) if len(actual_dnums) else None
         dist_actual = (
             abs(actual_dnums[idx_actual] - x) if idx_actual is not None else np.inf
         )
+
+        idx_pred = np.argmin(np.abs(pred_dnums - x)) if len(pred_dnums) else None
+        dist_pred = abs(pred_dnums[idx_pred] - x) if idx_pred is not None else np.inf
+
         idx_future = np.argmin(np.abs(future_dnums - x)) if len(future_dnums) else None
         dist_future = (
             abs(future_dnums[idx_future] - x) if idx_future is not None else np.inf
         )
 
         nearest = "none"
-        if idx_actual is not None and dist_actual <= dist_future:
+        if (
+            idx_actual is not None
+            and dist_actual <= dist_pred
+            and dist_actual <= dist_future
+        ):
             nearest = "actual"
+        elif (
+            idx_pred is not None
+            and dist_pred <= dist_actual
+            and dist_pred <= dist_future
+        ):
+            nearest = "pred"
         elif idx_future is not None:
             nearest = "future"
         else:
@@ -756,10 +817,22 @@ def main():
             dnum = actual_dnums[idx_actual]
             date = mdates.num2date(dnum)
             actual = actual_vals[idx_actual]
-            pred_idx = (
-                np.argmin(np.abs(future_dnums - dnum)) if len(future_dnums) else None
+            pred_idx = np.argmin(np.abs(pred_dnums - dnum)) if len(pred_dnums) else None
+            predicted = pred_vals[pred_idx] if pred_idx is not None else float("nan")
+        elif nearest == "pred" and idx_pred is not None:
+            dnum = pred_dnums[idx_pred]
+            date = mdates.num2date(dnum)
+            predicted = pred_vals[idx_pred]
+            act_idx = (
+                np.argmin(np.abs(actual_dnums - dnum))
+                if len(actual_dnums)
+                else float("nan")
             )
-            predicted = future_vals[pred_idx] if pred_idx is not None else float("nan")
+            actual = (
+                actual_vals[act_idx]
+                if not np.isnan(act_idx) and act_idx is not None
+                else float("nan")
+            )
         elif nearest == "future" and idx_future is not None:
             dnum = future_dnums[idx_future]
             date = mdates.num2date(dnum)
@@ -773,6 +846,7 @@ def main():
         actual_text = f"${actual:.2f}" if (not np.isnan(actual)) else "N/A"
         pred_text = f"${predicted:.2f}"
         text = f"{date.strftime('%Y-%m-%d')}\nActual: {actual_text}\nPredicted: {pred_text}"
+
         annotation.xy = (event.xdata, event.ydata)
         annotation.set_text(text)
         annotation.set_visible(True)
@@ -788,7 +862,10 @@ def main():
         bbox_inches="tight",
     )
     forecast_df = pd.DataFrame(
-        {"Date": future_dates, "Predicted_Price": future_predictions_prices.flatten()}
+        {
+            "Date": future_dates,
+            "Predicted_Price for next day": future_predictions_prices.flatten(),
+        }
     )
     forecast_df.to_csv(
         os.path.join(out_dir, "future_predictions_pytorch.csv"), index=False
@@ -866,14 +943,4 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        import traceback
-
-        print("\n" + "=" * 60)
-        print("ERROR ENCOUNTERED:")
-        print("=" * 60)
-        traceback.print_exc()
-        print("=" * 60)
-        input("\nPress Enter to exit...")
+    main()

@@ -1,7 +1,11 @@
 import time
 import sys
+from pathlib import Path
 
 script_start_time = time.time()
+REWRITE_ROOT = next(p for p in Path(__file__).resolve().parents if p.name == "REWRITE")
+LEGACY_LOG_PATH = REWRITE_ROOT / "artifacts" / "legacy" / "logs" / "terminal_activity.log"
+LEGACY_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 import os
 import datetime as dt
@@ -405,7 +409,7 @@ def build_sequences(scaled_values, prediction_days, future_day=30):
     return x, y
 
 
-sys.stdout = TeeLogger("terminal_activity.log")
+sys.stdout = TeeLogger(str(LEGACY_LOG_PATH))
 sys.stderr = sys.stdout
 
 

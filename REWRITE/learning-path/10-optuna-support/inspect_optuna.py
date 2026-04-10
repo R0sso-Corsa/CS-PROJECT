@@ -1,9 +1,11 @@
-
 import optuna
 import sys
+from pathlib import Path
 
 # Point to the database used in onedrive_pytorch.py
-db_url = "sqlite:///optuna_study.db"
+REWRITE_ROOT = next(p for p in Path(__file__).resolve().parents if p.name == "REWRITE")
+OPTUNA_DB_PATH = REWRITE_ROOT / "artifacts" / "legacy" / "databases" / "optuna_study.db"
+db_url = f"sqlite:///{OPTUNA_DB_PATH.as_posix()}"
 study_name = "onedrive_optimizer"
 
 try:

@@ -1,8 +1,9 @@
-
 import sqlite3
 import json
+from pathlib import Path
 
-db_path = "optuna_study.db"
+REWRITE_ROOT = next(p for p in Path(__file__).resolve().parents if p.name == "REWRITE")
+db_path = REWRITE_ROOT / "artifacts" / "legacy" / "databases" / "optuna_study.db"
 
 try:
     conn = sqlite3.connect(db_path)

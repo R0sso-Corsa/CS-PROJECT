@@ -10,6 +10,7 @@ import mplfinance as mpf
 import seaborn as sns
 import torch
 import torch.nn as nn
+from pathlib import Path
 from tqdm.auto import trange, tqdm
 
 # Disable MIOpen/cuDNN for LSTMs to prevent crash on some ROCm setups
@@ -352,9 +353,13 @@ def objective(
 # Enable verbose output for telemetry
 optuna.logging.set_verbosity(optuna.logging.INFO)
 
+REWRITE_ROOT = next(p for p in Path(__file__).resolve().parents if p.name == "REWRITE")
+OPTUNA_DB_PATH = REWRITE_ROOT / "artifacts" / "legacy" / "databases" / "optuna_study.db"
+OPTUNA_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+
 study = optuna.create_study(
     study_name="onedrive_optimizer",
-    storage="sqlite:///optuna_study.db",
+    storage=f"sqlite:///{OPTUNA_DB_PATH.as_posix()}",
     load_if_exists=True,
     direction="minimize",
 )

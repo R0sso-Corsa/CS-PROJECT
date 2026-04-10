@@ -3,6 +3,7 @@ import datetime as dt
 import glob
 import os
 import re
+from pathlib import Path
 
 import matplotlib
 
@@ -15,12 +16,24 @@ import pandas as pd
 import yfinance as yf
 
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+DEFAULT_OUTPUT_ROOT = SCRIPT_DIR / "outputs" / "cpp"
+DEFAULT_PREDICTIONS_DIR = DEFAULT_OUTPUT_ROOT / "predictions"
+DEFAULT_FORECASTS_DIR = DEFAULT_OUTPUT_ROOT / "forecasts"
+DEFAULT_PLOTS_DIR = DEFAULT_OUTPUT_ROOT / "plots"
+
+
 def _default_predictions_csv():
-    """Newest *_predictions_cpp_*.csv under cwd and this script's directory."""
-    roots = {os.getcwd(), os.path.dirname(os.path.abspath(__file__))}
+    """Newest *_predictions_cpp_*.csv under organized output dirs."""
+    roots = {
+        DEFAULT_PREDICTIONS_DIR,
+        DEFAULT_OUTPUT_ROOT,
+        SCRIPT_DIR,
+        Path.cwd(),
+    }
     candidates = []
     for root in roots:
-        pattern = os.path.join(root, "*_predictions_cpp_*.csv")
+        pattern = os.path.join(str(root), "*_predictions_cpp_*.csv")
         candidates.extend(glob.glob(pattern))
     if not candidates:
         return None
@@ -37,16 +50,19 @@ def _infer_ticker_from_predictions_path(path):
 
 def _default_future_csv(predictions_path, ticker):
     """Newest matching ``{ticker}_future_*d_cpp_*.csv`` beside predictions (or cwd)."""
+    predictions_path = Path(predictions_path).resolve()
     roots = {
-        os.path.dirname(os.path.abspath(predictions_path)) or ".",
-        os.getcwd(),
-        os.path.dirname(os.path.abspath(__file__)),
+        predictions_path.parent,
+        DEFAULT_FORECASTS_DIR,
+        DEFAULT_OUTPUT_ROOT,
+        SCRIPT_DIR,
+        Path.cwd(),
     }
     candidates = []
     prefix = re.escape(ticker) if ticker else r"[^_]+"
     pat = re.compile(rf"^{prefix}_future_\d+d_cpp_.*\.csv$")
     for root in roots:
-        for p in glob.glob(os.path.join(root, "*_future_*d_cpp_*.csv")):
+        for p in glob.glob(os.path.join(str(root), "*_future_*d_cpp_*.csv")):
             if pat.match(os.path.basename(p)):
                 candidates.append(p)
     if not candidates:
@@ -79,12 +95,12 @@ def main():
     parser.add_argument(
         "--csv",
         default=None,
-        help="Path to *_predictions_cpp_*.csv (default: newest in cwd or REWRITE/)",
+        help="Path to *_predictions_cpp_*.csv (default: newest in outputs/cpp/predictions/)",
     )
     parser.add_argument(
         "--future",
         default=None,
-        help="Path to *_future_*d_cpp_*.csv (default: newest matching ticker beside predictions)",
+        help="Path to *_future_*d_cpp_*.csv (default: newest in outputs/cpp/forecasts/)",
     )
     parser.add_argument(
         "--ticker",
@@ -104,11 +120,13 @@ def main():
     parser.add_argument(
         "--save",
         action="store_true",
-        help="Save PNGs to the predictions CSV directory",
+        help="Save PNGs to outputs/cpp/plots/",
     )
     args = parser.parse_args()
 
-    csv_path = args.csv or _default_predictions_csv()
+    csv_path = (
+        str(Path(args.csv).expanduser().resolve()) if args.csv else _default_predictions_csv()
+    )
     if not csv_path or not os.path.isfile(csv_path):
         print(
             "No CSV specified and no *_predictions_cpp_*.csv found.\n"
@@ -124,7 +142,11 @@ def main():
         print("Could not infer --ticker from filename; pass --ticker explicitly.")
         raise SystemExit(1)
 
-    future_path = args.future or _default_future_csv(csv_path, ticker)
+    future_path = (
+        str(Path(args.future).expanduser().resolve())
+        if args.future
+        else _default_future_csv(csv_path, ticker)
+    )
     if future_path and os.path.isfile(future_path):
         print(f"Using future CSV: {future_path}")
     else:
@@ -412,15 +434,16 @@ def main():
 
     fig.canvas.mpl_connect("motion_notify_event", motion_hover)
 
-    out_dir = os.path.dirname(os.path.abspath(csv_path)) or os.getcwd()
+    DEFAULT_PLOTS_DIR.mkdir(parents=True, exist_ok=True)
+    out_dir = DEFAULT_PLOTS_DIR
     present_day = dt.datetime.now().date()
     tag = args.optimizer_tag
 
     saved_paths = []
     if args.save:
-        p1 = os.path.join(out_dir, f"{tag}_{chart_name_plot_short}_{present_day}.png")
+        p1 = out_dir / f"{tag}_{chart_name_plot_short}_{present_day}.png"
         fig.savefig(p1, dpi=300, bbox_inches="tight")
-        saved_paths.append(p1)
+        saved_paths.append(str(p1))
 
     # ----------------------- Figure 2: forecast detail -----------------------
     if future_day > 0:
@@ -490,12 +513,9 @@ def main():
 
         fig2.tight_layout()
         if args.save:
-            p2 = os.path.join(
-                out_dir,
-                f"{tag}_{chart_name_plot_short}_forecast_detail_{present_day}.png",
-            )
+            p2 = out_dir / f"{tag}_{chart_name_plot_short}_forecast_detail_{present_day}.png"
             fig2.savefig(p2, dpi=300, bbox_inches="tight")
-            saved_paths.append(p2)
+            saved_paths.append(str(p2))
 
     if args.save and saved_paths:
         print("Saved:", saved_paths)

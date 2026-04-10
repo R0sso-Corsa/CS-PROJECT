@@ -1,10 +1,13 @@
-
 import optuna
 from optuna.trial import TrialState
+from pathlib import Path
 
 def seed_trials():
     study_name = "onedrive_optimizer"
-    storage_name = "sqlite:///optuna_study.db"
+    rewrite_root = next(p for p in Path(__file__).resolve().parents if p.name == "REWRITE")
+    db_path = rewrite_root / "artifacts" / "legacy" / "databases" / "optuna_study.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    storage_name = f"sqlite:///{db_path.as_posix()}"
     
     # Create or load study
     study = optuna.create_study(

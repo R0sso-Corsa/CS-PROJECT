@@ -4,6 +4,7 @@ import math
 import os
 import time
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -29,6 +30,30 @@ def _as_1d(a):
     return x.reshape(-1)
 
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+DEFAULT_OUTPUT_ROOT = SCRIPT_DIR / "outputs" / "cpp"
+
+
+def resolve_output_root(raw_output_dir):
+    """Use stable script-relative output dir by default."""
+    if raw_output_dir:
+        return Path(raw_output_dir).expanduser().resolve()
+    return DEFAULT_OUTPUT_ROOT
+
+
+def ensure_artifact_dirs(output_root):
+    output_root = Path(output_root)
+    artifact_dirs = {
+        "root": output_root,
+        "models": output_root / "models",
+        "predictions": output_root / "predictions",
+        "forecasts": output_root / "forecasts",
+    }
+    for path in artifact_dirs.values():
+        path.mkdir(parents=True, exist_ok=True)
+    return artifact_dirs
+
+
 @dataclass
 class Config:
     ticker: str = "BTC-USD"
@@ -41,7 +66,7 @@ class Config:
     final_dropout: float = 0.1
     optimizer_name: str = "Ranger"
     weight_decay: float = 0.05
-    output_dir: str = "."
+    output_dir: str = ""
     future_day: int = 30
     num_monte_carlo_runs: int = 100
 
@@ -276,7 +301,11 @@ def main():
         default=100,
         help="Monte Carlo dropout forward passes per forecast day.",
     )
-    parser.add_argument("--output-dir", default=".")
+    parser.add_argument(
+        "--output-dir",
+        default="",
+        help="Root output folder. Default: script-relative outputs/cpp/",
+    )
     parser.add_argument(
         "--no-compile",
         action="store_true",
@@ -289,7 +318,7 @@ def main():
         epochs=args.epochs,
         batch_size=args.batch_size,
         prediction_days=args.prediction_days,
-        output_dir=args.output_dir,
+        output_dir=str(resolve_output_root(args.output_dir)),
         future_day=args.future_days,
         num_monte_carlo_runs=args.mc_runs,
     )
@@ -309,6 +338,7 @@ def main():
 
     print(f"Ticker: {cfg.ticker}")
     print(f"Device: {device}")
+    print(f"Output root: {cfg.output_dir}")
 
     start = dt.datetime(2017, 1, 1)
     end = dt.datetime.now()
@@ -458,14 +488,16 @@ def main():
     mae = mean_absolute_error(actual, pred_prices)
     print(f"RMSE: {rmse:.4f}  MAE: {mae:.4f}")
 
-    os.makedirs(cfg.output_dir, exist_ok=True)
+    artifact_dirs = ensure_artifact_dirs(cfg.output_dir)
     stamp = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-    model_path = os.path.join(cfg.output_dir, f"{cfg.ticker}_model_cpp_{stamp}.pt")
+    model_path = artifact_dirs["models"] / f"{cfg.ticker}_model_cpp_{stamp}.pt"
     torch.save(model.state_dict(), model_path)
     pred_df = pd.DataFrame(
         {"Date": dates, "Predicted": pred_prices, "Actual": actual}
     )
-    pred_path = os.path.join(cfg.output_dir, f"{cfg.ticker}_predictions_cpp_{stamp}.csv")
+    pred_path = (
+        artifact_dirs["predictions"] / f"{cfg.ticker}_predictions_cpp_{stamp}.csv"
+    )
     pred_df.to_csv(pred_path, index=False)
     print(f"Saved model: {model_path}")
     print(f"Saved predictions: {pred_path}")
@@ -505,9 +537,8 @@ def main():
             "CI95_upper": upper,
         }
     )
-    future_path = os.path.join(
-        cfg.output_dir,
-        f"{cfg.ticker}_future_{cfg.future_day}d_cpp_{stamp}.csv",
+    future_path = (
+        artifact_dirs["forecasts"] / f"{cfg.ticker}_future_{cfg.future_day}d_cpp_{stamp}.csv"
     )
     future_df.to_csv(future_path, index=False)
     print(f"Saved future forecast: {future_path}")
