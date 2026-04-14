@@ -1,0 +1,552 @@
+  
+  
+  Contents
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">TOC \o "1-9" \z \u \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:hyperlink w:anchor="_Toc912729269"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>Project identification
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc912729269 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>2
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc1737335630"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>Stakeholders
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc1737335630 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>3
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc1421289122"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>Justification
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc1421289122 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>4
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc391379289"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>Example Evaluation
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc391379289 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>4
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc718812508"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>AI prediction websites
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc718812508 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>7
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc1955090466"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>APIs
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc1955090466 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>8
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc1600226098"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>API Summary
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc1600226098 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>9
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc61435588"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>yFinance
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc61435588 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>9
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc39673598"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>TensorFlow Documentation
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc39673598 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>10
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc999704437"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>GitHub REST API
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc999704437 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>11
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc977516341"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>Library Evaluation
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc977516341 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>12
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc2039023784"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>SQLite3
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc2039023784 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>12
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc57130275"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>Pandas
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc57130275 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>13
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc567158214"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>Numpy
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc567158214 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>14
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc1227598116"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>Matplotlib
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc1227598116 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>14
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc465083915"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>Pickle
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc465083915 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>15
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc708110631"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>TensorFlow
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc708110631 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>17
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc635398576"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>PyTorch (REPLACED TENSORFLOW DUE TO UNFORSEEN COMPATIBILITY ISSUES)
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc635398576 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>19
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc2109195888"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>Possible Issues
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc2109195888 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>20
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc203038261"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>Design
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc203038261 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>21
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc1882523066"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>UI Wireframe
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc1882523066 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>21
+<w:tab w:val="right" w:leader="dot" w:pos="9360" /></w:tabs><w:bidi w:val="0" /><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr></w:pPr><w:hyperlink w:anchor="_Toc304748104"><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>Bibliography
+</w:r><w:r><w:fldChar w:fldCharType="begin" /></w:r><w:r><w:instrText xml:space="preserve">PAGEREF _Toc304748104 \h</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate" /></w:r><w:r w:rsidRPr="5D3A63F6" w:rsidR="5D3A63F6"><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t>23
+<w:tab w:val="right" w:leader="dot" w:pos="9015" /></w:tabs><w:spacing w:after="100" /><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:caps w:val="0" /><w:smallCaps w:val="0" /><w:noProof w:val="0" /><w:color w:val="467886" /><w:sz w:val="24" /><w:szCs w:val="24" /><w:lang w:val="en-US" /></w:rPr></w:pPr></w:p><w:p w:rsidR="77443156" w:rsidP="77443156" w:rsidRDefault="77443156" w14:paraId="32B0293E" w14:textId="5D3DE921"><w:pPr><w:tabs><w:tab w:val="right" w:leader="dot" w:pos="9015" /></w:tabs><w:spacing w:after="100" /><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:caps w:val="0" /><w:smallCaps w:val="0" /><w:noProof w:val="0" /><w:color w:val="467886" /><w:sz w:val="24" /><w:szCs w:val="24" /><w:lang w:val="en-US" /></w:rPr></w:pPr></w:p><w:p w:rsidR="77443156" w:rsidP="77443156" w:rsidRDefault="77443156" w14:paraId="5A5985D9" w14:textId="635F39D1"><w:pPr><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:caps w:val="0" /><w:smallCaps w:val="0" /><w:noProof w:val="0" /><w:color w:val="000000" w:themeColor="text1" w:themeTint="FF" w:themeShade="FF" /><w:sz w:val="24" /><w:szCs w:val="24" /><w:lang w:val="en-US" /></w:rPr></w:pPr></w:p><w:p w:rsidR="77443156" w:rsidP="77443156" w:rsidRDefault="77443156" w14:paraId="748C8542" w14:textId="1CEAA2A2"><w:pPr><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:caps w:val="0" /><w:smallCaps w:val="0" /><w:noProof w:val="0" /><w:color w:val="000000" w:themeColor="text1" w:themeTint="FF" w:themeShade="FF" /><w:sz w:val="24" /><w:szCs w:val="24" /><w:lang w:val="en-US" /></w:rPr></w:pPr></w:p><w:p w:rsidR="10AB6B1C" w:rsidP="5D3A63F6" w:rsidRDefault="10AB6B1C" w14:paraId="3A8B83C0" w14:textId="221288DB"><w:pPr><w:pStyle w:val="Heading1" /><w:keepNext w:val="1" /><w:keepLines w:val="1" /><w:spacing w:before="360" w:after="80" /><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Arial" w:cs="Arial" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:caps w:val="0" /><w:smallCaps w:val="0" /><w:noProof w:val="0" /><w:color w:val="0F4761" w:themeColor="accent1" w:themeTint="FF" w:themeShade="BF" /><w:sz w:val="40" /><w:szCs w:val="40" /><w:lang w:val="en-US" /></w:rPr></w:pPr><w:bookmarkStart w:name="_Toc912729269" w:id="926311262" /><w:r w:rsidRPr="5D3A63F6" w:rsidR="10AB6B1C"><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Arial" w:cs="Arial" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:caps w:val="0" /><w:smallCaps w:val="0" /><w:noProof w:val="0" /><w:color w:val="0F4761" w:themeColor="accent1" w:themeTint="FF" w:themeShade="BF" /><w:sz w:val="40" /><w:szCs w:val="40" /><w:lang w:val="en-GB" /></w:rPr><w:t>Project identification
+Crypto tracking website with a fully developed front and backend that reads and writes to a database to store user credentials and assign them a UUID (Universally Unique Identifier) and also give them the ability to favourite crypto graphs to be able to view them later. It will also utilize AI to predict stock market fluctuations and have account profiles (if it is in my time frame to implement).
+The project will make use of several different web pages that utilize HTML, CSS, JavaScript, and PHP to communicate with multiple databases to store any credentials for user logins and the user's inputs for various quizzes they can go through. It will all be hosted on a Linux server to be accessible on different devices via the Apache web service utilized by Xampp/Lampp.
+Regarding hosting user data on the internet to be accessed anywhere, a Wi-Fi router/modem can be used to act as a DNS which the user connects to as they load the website. The website will feature a log-in system in which a user’s credentials will be stored on a database within the Mint Linux environment which can then be accessed by using SQL queries in an external python script (which will include a debug menu that will be accessible only under a specific UUID which only I am aware of and will assign to myself. User account UUIDs are created using the python library “uuid” which contains a function for generating UUID V4 strings. UUID V4 implemented fully random generation, meaning no previously generated IDs are the same. These UUIDs will then be put into an SQL database where they can be monitored and edited if I deem it necessary. 
+The website will be used for entrepreneurs and shareholders to monitor stock market activity alongside providing stock predictions to aid them in making the right decisions regarding their trading.
+Stakeholders
+<w:tblPr><w:tblStyle w:val="TableGrid" /><w:bidiVisual w:val="0" /><w:tblW w:w="0" w:type="auto" /><w:tblBorders><w:top w:val="single" w:sz="6" /><w:left w:val="single" w:sz="6" /><w:bottom w:val="single" w:sz="6" /><w:right w:val="single" w:sz="6" /></w:tblBorders><w:tblLayout w:type="fixed" /><w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:noHBand="0" w:noVBand="1" /></w:tblPr><w:tblGrid><w:gridCol w:w="2355" /><w:gridCol w:w="2325" /><w:gridCol w:w="2295" /><w:gridCol w:w="2025" /></w:tblGrid><w:tr w:rsidR="77443156" w:rsidTr="77443156" w14:paraId="3E499144"><w:trPr><w:trHeight w:val="300" /></w:trPr><w:tc><w:tcPr><w:tcW w:w="2355" w:type="dxa" /><w:shd w:val="clear" w:color="auto" w:fill="7F7F7F" w:themeFill="text1" w:themeFillTint="80" /><w:tcMar><w:left w:w="105" w:type="dxa" /><w:right w:w="105" w:type="dxa" /></w:tcMar><w:vAlign w:val="top" /></w:tcPr><w:p w:rsidR="77443156" w:rsidP="77443156" w:rsidRDefault="77443156" w14:paraId="55B9E330" w14:textId="75EBB118"><w:pPr><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /></w:rPr></w:pPr><w:r w:rsidRPr="77443156" w:rsidR="77443156"><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /><w:lang w:val="en-GB" /></w:rPr><w:t>Name
+<w:tcPr><w:tcW w:w="2325" w:type="dxa" /><w:shd w:val="clear" w:color="auto" w:fill="7F7F7F" w:themeFill="text1" w:themeFillTint="80" /><w:tcMar><w:left w:w="105" w:type="dxa" /><w:right w:w="105" w:type="dxa" /></w:tcMar><w:vAlign w:val="top" /></w:tcPr><w:p w:rsidR="77443156" w:rsidP="77443156" w:rsidRDefault="77443156" w14:paraId="7139C30A" w14:textId="385C4FDB"><w:pPr><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /></w:rPr></w:pPr><w:r w:rsidRPr="77443156" w:rsidR="77443156"><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /><w:lang w:val="en-GB" /></w:rPr><w:t>Description
+<w:tcPr><w:tcW w:w="2295" w:type="dxa" /><w:shd w:val="clear" w:color="auto" w:fill="7F7F7F" w:themeFill="text1" w:themeFillTint="80" /><w:tcMar><w:left w:w="105" w:type="dxa" /><w:right w:w="105" w:type="dxa" /></w:tcMar><w:vAlign w:val="top" /></w:tcPr><w:p w:rsidR="77443156" w:rsidP="77443156" w:rsidRDefault="77443156" w14:paraId="5A4A748B" w14:textId="52309304"><w:pPr><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /></w:rPr></w:pPr><w:r w:rsidRPr="77443156" w:rsidR="77443156"><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /><w:lang w:val="en-GB" /></w:rPr><w:t>Explanation
+<w:tcPr><w:tcW w:w="2025" w:type="dxa" /><w:shd w:val="clear" w:color="auto" w:fill="7F7F7F" w:themeFill="text1" w:themeFillTint="80" /><w:tcMar><w:left w:w="105" w:type="dxa" /><w:right w:w="105" w:type="dxa" /></w:tcMar><w:vAlign w:val="top" /></w:tcPr><w:p w:rsidR="77443156" w:rsidP="77443156" w:rsidRDefault="77443156" w14:paraId="40AA0A85" w14:textId="7801CE3E"><w:pPr><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /></w:rPr></w:pPr><w:r w:rsidRPr="77443156" w:rsidR="77443156"><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /><w:lang w:val="en-GB" /></w:rPr><w:t>How appropriate
+<w:trPr><w:trHeight w:val="300" /></w:trPr><w:tc><w:tcPr><w:tcW w:w="2355" w:type="dxa" /><w:tcMar><w:left w:w="105" w:type="dxa" /><w:right w:w="105" w:type="dxa" /></w:tcMar><w:vAlign w:val="top" /></w:tcPr><w:p w:rsidR="77443156" w:rsidP="77443156" w:rsidRDefault="77443156" w14:paraId="792E9BE3" w14:textId="78CD1F94"><w:pPr><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /></w:rPr></w:pPr><w:r w:rsidRPr="77443156" w:rsidR="77443156"><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /><w:lang w:val="en-GB" /></w:rPr><w:t>Guillermo Raya Clemente
+<w:tcPr><w:tcW w:w="2325" w:type="dxa" /><w:tcMar><w:left w:w="105" w:type="dxa" /><w:right w:w="105" w:type="dxa" /></w:tcMar><w:vAlign w:val="top" /></w:tcPr><w:p w:rsidR="77443156" w:rsidP="77443156" w:rsidRDefault="77443156" w14:paraId="367E3F5F" w14:textId="41590D2E"><w:pPr><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /></w:rPr></w:pPr><w:r w:rsidRPr="77443156" w:rsidR="77443156"><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /><w:lang w:val="en-GB" /></w:rPr><w:t>Absolute unit, pro, 17  year old male resides in Scotland
+<w:tcPr><w:tcW w:w="2295" w:type="dxa" /><w:tcMar><w:left w:w="105" w:type="dxa" /><w:right w:w="105" w:type="dxa" /></w:tcMar><w:vAlign w:val="top" /></w:tcPr><w:p w:rsidR="77443156" w:rsidP="77443156" w:rsidRDefault="77443156" w14:paraId="1B3AC29A" w14:textId="613C8197"><w:pPr><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /></w:rPr></w:pPr><w:r w:rsidRPr="77443156" w:rsidR="77443156"><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /><w:lang w:val="en-GB" /></w:rPr><w:t xml:space="preserve">Student for the sciences of computers and also my neighbour in lesson. He will be my primary tester as he is the closest to me and sees a lot of my work. 
+<w:tcPr><w:tcW w:w="2025" w:type="dxa" /><w:tcMar><w:left w:w="105" w:type="dxa" /><w:right w:w="105" w:type="dxa" /></w:tcMar><w:vAlign w:val="top" /></w:tcPr><w:p w:rsidR="77443156" w:rsidP="77443156" w:rsidRDefault="77443156" w14:paraId="4EBE0361" w14:textId="79370E7D"><w:pPr><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /></w:rPr></w:pPr><w:r w:rsidRPr="77443156" w:rsidR="77443156"><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /><w:lang w:val="en-GB" /></w:rPr><w:t>Will have hands on access to the website and view the progress being made in person. He will attain second priority to interact with the project
+<w:trPr><w:trHeight w:val="300" /></w:trPr><w:tc><w:tcPr><w:tcW w:w="2355" w:type="dxa" /><w:tcMar><w:left w:w="105" w:type="dxa" /><w:right w:w="105" w:type="dxa" /></w:tcMar><w:vAlign w:val="top" /></w:tcPr><w:p w:rsidR="77443156" w:rsidP="77443156" w:rsidRDefault="77443156" w14:paraId="589E2202" w14:textId="451D3364"><w:pPr><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /></w:rPr></w:pPr><w:r w:rsidRPr="77443156" w:rsidR="77443156"><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /><w:lang w:val="en-GB" /></w:rPr><w:t xml:space="preserve">Mr. Sisulu 
+<w:tcPr><w:tcW w:w="2325" w:type="dxa" /><w:tcMar><w:left w:w="105" w:type="dxa" /><w:right w:w="105" w:type="dxa" /></w:tcMar><w:vAlign w:val="top" /></w:tcPr><w:p w:rsidR="77443156" w:rsidP="77443156" w:rsidRDefault="77443156" w14:paraId="73AC02F8" w14:textId="2D8A1F4E"><w:pPr><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /></w:rPr></w:pPr><w:r w:rsidRPr="77443156" w:rsidR="77443156"><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /><w:lang w:val="en-GB" /></w:rPr><w:t>Computer science teacher for the Compton School, tall, middle-aged man, resides in London
+<w:tcPr><w:tcW w:w="2295" w:type="dxa" /><w:tcMar><w:left w:w="105" w:type="dxa" /><w:right w:w="105" w:type="dxa" /></w:tcMar><w:vAlign w:val="top" /></w:tcPr><w:p w:rsidR="77443156" w:rsidP="77443156" w:rsidRDefault="77443156" w14:paraId="7C66702B" w14:textId="294F0233"><w:pPr><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /></w:rPr></w:pPr><w:r w:rsidRPr="77443156" w:rsidR="77443156"><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /><w:lang w:val="en-GB" /></w:rPr><w:t>Monitoring and foreseeing my progress with the website and its contents. Will guide me to finishing the project and will also provide useful insights on how to improve and polish code.
+<w:tcPr><w:tcW w:w="2025" w:type="dxa" /><w:tcMar><w:left w:w="105" w:type="dxa" /><w:right w:w="105" w:type="dxa" /></w:tcMar><w:vAlign w:val="top" /></w:tcPr><w:p w:rsidR="77443156" w:rsidP="77443156" w:rsidRDefault="77443156" w14:paraId="4EC4FBF0" w14:textId="34AD07A8"><w:pPr><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /></w:rPr></w:pPr><w:r w:rsidRPr="77443156" w:rsidR="77443156"><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /><w:lang w:val="en-GB" /></w:rPr><w:t>Will have first priority access to interact with the website and its contents. Will have unlimited access to view source code and provide suggestions that will be effective immediately.
+<w:trPr><w:trHeight w:val="300" /></w:trPr><w:tc><w:tcPr><w:tcW w:w="2355" w:type="dxa" /><w:tcMar><w:left w:w="105" w:type="dxa" /><w:right w:w="105" w:type="dxa" /></w:tcMar><w:vAlign w:val="top" /></w:tcPr><w:p w:rsidR="77443156" w:rsidP="77443156" w:rsidRDefault="77443156" w14:paraId="331CA350" w14:textId="42835794"><w:pPr><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /></w:rPr></w:pPr><w:r w:rsidRPr="77443156" w:rsidR="77443156"><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /><w:lang w:val="en-GB" /></w:rPr><w:t>Client (John Doe)
+<w:tcPr><w:tcW w:w="2325" w:type="dxa" /><w:tcMar><w:left w:w="105" w:type="dxa" /><w:right w:w="105" w:type="dxa" /></w:tcMar><w:vAlign w:val="top" /></w:tcPr><w:p w:rsidR="77443156" w:rsidP="77443156" w:rsidRDefault="77443156" w14:paraId="38DEEA28" w14:textId="367C1EC1"><w:pPr><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /></w:rPr></w:pPr><w:r w:rsidRPr="77443156" w:rsidR="77443156"><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /><w:lang w:val="en-GB" /></w:rPr><w:t xml:space="preserve">Anyone who is responsible for using the website for commercial use. 
+<w:tcPr><w:tcW w:w="2295" w:type="dxa" /><w:tcMar><w:left w:w="105" w:type="dxa" /><w:right w:w="105" w:type="dxa" /></w:tcMar><w:vAlign w:val="top" /></w:tcPr><w:p w:rsidR="77443156" w:rsidP="77443156" w:rsidRDefault="77443156" w14:paraId="42E3C0EC" w14:textId="2072E616"><w:pPr><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /></w:rPr></w:pPr><w:r w:rsidRPr="77443156" w:rsidR="77443156"><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /><w:lang w:val="en-GB" /></w:rPr><w:t>Will be using the website for their own business and for their own benefit. They will be communicating with me for implementing features that they wish to be added. Suggestions must be communicated with me as soon as possible.
+<w:tcPr><w:tcW w:w="2025" w:type="dxa" /><w:tcMar><w:left w:w="105" w:type="dxa" /><w:right w:w="105" w:type="dxa" /></w:tcMar><w:vAlign w:val="top" /></w:tcPr><w:p w:rsidR="77443156" w:rsidP="77443156" w:rsidRDefault="77443156" w14:paraId="361484FD" w14:textId="0517834D"><w:pPr><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /></w:rPr></w:pPr><w:r w:rsidRPr="77443156" w:rsidR="77443156"><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" /><w:b w:val="0" /><w:bCs w:val="0" /><w:i w:val="0" /><w:iCs w:val="0" /><w:sz w:val="24" /><w:szCs w:val="24" /><w:lang w:val="en-GB" /></w:rPr><w:t>John Doe is able to view prototypes of the website and keep track of my progress regarding the implementation of their suggestions and the general completion of the platform
+Justification
+To get an idea of if the project is possible or not, we can look at possible examples already on the internet. By looking up the key phrase “
+Crypto Tracker” 
+we get a slurry of different results, showcasing websites dedicated to communicating crypto prices to clients who need them, alongside graphs detailing the current, previous, and sometimes predicted prices of crypto currencies (although the prediction graphs are usually put under monetised subscriptions as they utilise AI training data created by the owners of the website).
+Example Evaluation
+There are multiple examples of similar projects that display similar functionalities with user friendly designs and effective metric descriptions. 
+The First example, CoinStats (
+https://coinstats.app
+), which features a dark user interface with rounded icons and circular edges for a sleek and modern design. The homepage greets the users with different options of connecting portfolios and a drop down underneath with the current 5 leading crypto coins, accompanied by their price graphs on the right side. They show the recent percentage change in price of the coins and when clicking on these coins, a graph summary is presented with various metrics on the coins data like market cap, price, and optional viewing types (Price, TradingView, MarketCap, AvailableSupply). 
+Another example is 
+CoinGecko
+. Their homepage features an abundance of statistics (one being the total market cap of 
+all 
+currencies
+) 
+and metrics about various cryptocurrencies. In the list of coins, each name is accompanied by current coin price,1-hour fluctuation, 24-hour fluctuation, 7-day fluctuation, 24-hour volume and a graph showing how the coin price changed over the last 7 days. There are also different filters for the listing such as highlights (top ranking leaderboards), coin categories, and more.
+AI prediction websites
+Although they are examples of crypto trackers, the 
+lack of
+ prediction features (as that is not the intention of the 
+websites
+ owners). Instead, we must look at community driven projects 
+due to the fact that
+ large corporations 
+focus more on 
+statistical
+ presentation rather than statistical analysis
+. These community driven projects are quite complex and cluttered, but they provide 
+proof
+ of concept for the prediction of prices.
+ A larger scale and more official version of these prediction AIs is 
+Crypticorn
+. 
+They provide a dashboard which displays crypto prices alongside a graph that shows 
+possible prices
+ and a most likely price
+:
+The dashboard also shows various metrics apart from crypto prices and predicted fluctuations such as th
+e “market trends” meter which shows an identifier for the markets fear and greed index. 
+This 
+represents
+ how likely the market is to go up or down
+. 
+The AI itself takes multiple 
+factors
+ into account (including fear and greed index)
+.
+ Such factors 
+include:
+ technical indicators, macroeconomic news, on-chain data, search 
+data
+ and chart patterns. 
+There are many other factors that can influence the AI’s decision, but these are the main contributors for the outcome it concludes with. 
+Crypticorn | Real Artificial Intelligence AI Crypto Trading
+AI Crypto Price Predictions 
+- 
+The Ultimate Guide to Profits
+https://coingecko.com
+ 
+https://cointracker.io
+https://delta.app
+APIs
+API Summary
+These websites make use of an API (Application Program Interface), which are sets of different rules and definitions that allow software components to communicate and interact with each other. 
+Essentially, they
+ allow software to communicate with other software. They have a library of functions that can be used to call the target software and await a response. 
+An API 
+I
+ will most definitely utilise is 
+yFinance
+. This is due to its ability to 
+collect data from yahoo finance’s website which 
+ill
+ be utilising as the official yahoo finance 
+API
+ was 
+discontinued
+. 
+Luckily
+ the API was stored as 
+a
+ importable library which 
+reduces the 
+complexity of trying to get the API to function. 
+yFinance
+yFinance
+ is a popular open-source Python library that provides free access to financial market data from Yahoo Finance, including cryptocurrency prices. It allows users to download historical and real-time OHLCV data (Open, High, Low, Close, Volume), such as  for crypto pairs like BTC-USD, ETH-USD, and others without requiring API keys or subscriptions. The library is easy to install and use, returning data as pandas 
+DataFrames
+ that can be customized with flexible time intervals ranging from 1-minute to monthly data. Its Pythonic design and seamless integration with popular machine learning libraries like scikit-learn, TensorFlow, and 
+PyTorch
+ make it the go-to data source for developers and researchers building AI-powered crypto prediction systems. 
+yFinance
+ provides the foundational data layer that AI models need for training, with capabilities to download years of historical price data for pattern recognition, technical indicator calculation (moving averages, RSI, MACD, Bollinger Bands), and real-time updates for live prediction systems.
+TensorFlow
+ 
+Documentation
+TensorFlow is an open-source software library for machine learning and artificial intelligence developed by Google's Brain team and initially released to the public in 2015. It is one of the most popular deep learning frameworks alongside 
+PyTorch
+, designed to bundle together machine learning and deep learning models and algorithms (neural networks) into a comprehensive platform for numerical computation and large-scale machine learning. TensorFlow provides a convenient front-end API that lets developers build applications using Python or JavaScript, while the underlying platform executes those applications in high-performance C++. The library's biggest advantage is abstraction
+, 
+developers can focus on overall application logic rather than implementing complex algorithms from scratch or manually connecting function inputs and outputs. TensorFlow works seamlessly across multiple environments including CPUs, GPUs, TPUs (Google's custom tensor processing units), mobile devices, edge computing devices, and even web browsers through TensorFlow.js. Its integration with 
+Keras
+, a high-level API, makes building neural networks intuitive and accessible, allowing users to create models with just a few lines of Python code. TensorFlow also includes powerful tools like 
+TensorBoard
+ for visualization and debugging, TensorFlow Lite (now 
+LiteRT
+) for mobile and embedded deployment, and TensorFlow Extended (TFX) for production ML pipelines, making it an end-to-end platform for the entire machine learning lifecycle from research to production deployment.
+Despite TensorFlow's powerful capabilities, cryptocurrency prediction 
+remains
+ inherently challenging due to market volatility, external factors like regulatory changes and market sentiment, and the non-linear, chaotic nature of crypto markets. One limitation of TensorFlow is that model-training results can vary slightly between systems due to non-deterministic 
+behaviours
+ when using GPUs and how random numbers are seeded, though this typically has minimal impact on prediction accuracy. The 
+real challenge
+ lies in the data itself
+, 
+cryptocurrency markets are influenced by countless unpredictable factors including news events, social media sentiment, macroeconomic conditions, and trader psychology that no historical price data alone can fully capture. Successful TensorFlow-based crypto predictors often combine price data with sentiment analysis from social media, trading volume patterns, technical indicators (RSI, MACD, Bollinger Bands), and even Fear and Greed indices. The framework's versatility allows researchers to experiment with different architectures including stacked LSTM layers, CNN-LSTM hybrids that use convolutional layers for feature extraction before LSTM processing, attention mechanisms that help models focus on the most relevant time steps, and ensemble methods that combine predictions from multiple models. TensorFlow's active community, extensive documentation, pre-trained models available through TensorFlow Hub, and continuous development backed by Google make it the go-to choice for both researchers pushing the boundaries of crypto prediction accuracy and developers deploying production trading systems. While no model can perfectly predict cryptocurrency prices, TensorFlow provides the tools and flexibility needed to build sophisticated AI systems that can 
+identify
+ patterns, quantify uncertainty, and make probabilistic forecasts that are significantly better than random guessing or simple statistical models.
+GitHub REST API
+The GitHub REST API [
+https://docs.github.com/en/rest?apiVersion=2022-11-28
+] is an API that allows you to utilise GitHub services within code or alternatively inside a terminal by using GitHub CLI (Command Line Interface [
+https://cli.github.com/manual/gh
+]). This API lets the user create scripts that help to automate processes and to integrate projects with the GitHub library. People can use the API by creating endpoints which interact with the API itself. 
+We can make use of the REST API to make the website more resource efficient by using its ability to import scripts and code from GitHub and be ran as a subprocess using the python library “subprocess”. Although, when importing code from GitHub repositories, they will need to be decoded as they utilise base64 encoding during the transfer to ensure that any unsupported Unicode characters are not removed once the transfer is finished. 
+They have several tiers with different call limits. 60 calls an hour for an unauthenticated request/account is the lowest tier. They explain the reason for this low number to be a solution to DOS attacks and other abuse. The other tiers have access to 5000 requests an hour (personal rate) and 15000 requests an hour (GitHub Enterprise Cloud organisation).
+Library Evaluation
+To make this project run 
+properly using
+ python, it is required that multiple Python libraries 
+are
+ utilised for compatibility and functionality purposes.
+SQLite3
+SQLite3 is a C library that provides the user a lightweight disk-based database that 
+doesn't
+ require a separate server process to allow access to the database when using a nonstandard variant of the SQL query language. 
+It was written in C, making it quite fast and responsive to user input, being able to process SQL transactions with minimal waiting times. 
+It was developed in the year 2000 while Dr. D. Richard Hipp was working on a contract for the US Navy. Being for the Navy, mean
+t that the library had to inherently be fast and performant as time is a crucial factor in the military field. Ever since its release,
+ 
+it's
+ become one of the most widely developed database engines, seeing applications in web
+sites, operating systems, mobile phones and other embedded systems.
+To initiate a connection with a database, the method “sqlite3.connect” is utilised, with a suffix declaring the name of the database to connect to:
+In order to execute SQL statements, we will need to make use of a database cursor, which can be created as such: d
+Now, we are able to interact with the database by calling the method “execute”:
+When an interaction has been made with the database, the “commit()” method is executed to write the changes to disk:
+Once all the interactions needed with the database were concluded, we can end the connection with the database by using “
+close(
+)”:
+This ensures that 
+all of
+ the changes were written to disk before python closes the connection between it and the database.
+ 
+sqlite3 
+- 
+DB-API 2.0 interface for SQLite databases 
+- 
+Python 3.14.2 documentation
+Pandas
+Pandas is a python library that 
+specializes
+ 
+on
+ working with datasets
+. It can explore, 
+manipulate
+ and display data with various functions and procedures that come with the library and is regarded as the go-to library for such activities.
+It is a requirement to have 
+installed with 
+numerous
+ other libraries
+ that 
+specialize
+ in displaying analytical data alongside being necessary for forecasting and 
+prediction
+ libraries. 
+This is because it is able to clean up data and provide accurate 
+results,
+ which is incredibly important in data science.
+ 
+Pandas 
+was
+ primarily designed for tubular data. This means data arranged in spreadsheets. As the primary form our data takes in this algorithm is 
+mainly CSVs
+ (which is 
+a text-based variant of a spreadsheet), We can 
+utilize
+ the functions of Pandas to read and write data in this format. 
+Numpy
+Numpy 
+is a fundamental package for scientific computing and interacting with 
+numerical data. It allows for the manipulation of numbers allowing arrays of any dimension via vectorization (a technique that allows for a computer to process d
+ata simultaneously) and indexing. It
+s primary functions were written in C and C++, further boosting its efficiency and speed
+ (being low and mid-level programming languages requiring less drastic conversion to assembly once compiled).
+ This library stands as the foundation for data science and AI, which will be used to help predict the prices of cryptocurrencies for 
+my website. 
+Matplotlib
+Matplotlib is a visual graphing tool used for python which can be used to display various different statistics in a multitude of formfactors.
+ 
+Its quite simple in terms of how data is plotted and the graphs can be edited after being 
+plotted,
+ making them very versatile. 
+I will be 
+utilizing
+ this to present the results of the LSTM model 
+using the line graph 
+which will create a 
+windows
+ displaying the data in an interactable chart.
+Pickle
+Pickle
+ is a serialization and deserialization library used for managing data. This is going to be used in combination with matplotlib where the data from the plot will be dumped, then loaded into a CSV using pandas under a file named "
+future_predictions
+." More specifically, pickling converts a Python object hierarchy into a byte stream, while unpickling is the inverse operation that converts a byte stream back into an object hierarchy. Serialization allows users to preserve the state of data or models, avoiding the need to reprocess or retrain from scratch. In the context of cryptocurrency prediction, Pickle serves multiple crucial functions: it can serialize the trained machine learning model itself so it doesn't need to be retrained every time predictions are needed, it can save matplotlib figure objects (including all plot data, axes, labels, and formatting) for later modification or data extraction, and it can preserve prediction results and intermediate data structures for further analysis. The workflow typically involves creating predictions using the trained model, visualizing those predictions using matplotlib to generate plots showing historical prices versus forecasted values, to serialize the figure object to a binary file (e.g., '
+predictions.pickle
+'). Later, the pickled figure can be loaded using 
+pickle.load
+()
+, and the underlying data can be extracted from the plot to retrieve x and y coordinates. This extracted data, 
+containing
+ dates and predicted cryptocurrency prices, can then be converted into a pandas 
+DataFrame
+ and exported to a CSV file named
+ 
+"future_predictions.csv" using 
+df.to_csv
+('future_predictions.csv')
+, making the predictions accessible for further analysis, sharing with stakeholders, or integration into trading systems. However, Pickle is unsafe because it can execute malicious Python 
+callable
+ to construct objects, meaning users should never unpickle data from untrusted sources, making it suitable only for internal project use where all data sources are controlled and verified.
+TensorFlow
+TensorFlow is a machine learning library developed by Google and built upon the 
+Keras
+ machine learning framework. It builds upon 
+Keras
+' already created functions through deep customization and prioritizes algorithm efficiency. More precisely, TensorFlow is an open-source software library for machine learning and artificial intelligence developed by Google's Brain team and initially released to the public in 2015, while 
+Keras
+ is a high-level application programming interface (API) designed to make developing deep learning models within TensorFlow easier. The relationship between them has evolved significantly 
+- 
+Keras
+ was originally a standalone library but has been integrated into TensorFlow as the official high-level API for building neural networks, with this integration becoming seamless in TensorFlow 2.0. TensorFlow handles the computation graph, automatic differentiation, and hardware acceleration, allowing developers to focus on model architecture and experimentation without writing low-level code. Essentially, 
+Keras
+ provides the simple, intuitive syntax for building neural networks by stacking layers together, while TensorFlow provides the powerful computational backend that executes those models efficiently across CPUs, GPUs, and TPUs. TensorFlow is one of the most popular deep learning frameworks alongside 
+PyTorch
+, designed to bundle together machine learning and deep learning models and algorithms (neural networks) into a comprehensive platform for numerical computation and large-scale machine learning. The library's biggest advantage is abstraction 
+- 
+developers can focus on overall application logic rather than implementing complex algorithms from scratch or manually connecting function inputs and outputs. 
+Keras
+ acts as an 
+additional
+ learning library that runs on top of TensorFlow and offers a higher-level, simpler interface, faster debugging, and more readable source code, making it the favored approach for companies like NASA, YouTube, and Waymo because it lowers developers' cognitive load while guaranteeing high performance and scalability. TensorFlow provides a convenient front-end API that lets developers build applications using Python or JavaScript, while the underlying platform executes those applications in high-performance C++. TensorFlow works seamlessly across multiple environments including CPUs, GPUs, TPUs (Google's custom tensor processing units), mobile devices, edge computing devices, and even web browsers through TensorFlow.js. Its integration with 
+Keras
+, a high-level API, makes building neural networks intuitive and accessible, allowing users to create models with just a few lines of Python code. TensorFlow also includes powerful tools like 
+TensorBoard
+ for visualization and debugging, TensorFlow Lite (now 
+LiteRT
+) for mobile and embedded deployment, and TensorFlow Extended (TFX) for production ML pipelines, making it an end-to-end platform for the entire machine learning lifecycle from research to production deployment.
+PyTorch
+ (REPLACED TENSORFLOW DUE TO UNFORSEEN COMPATIBILITY ISSUES)
+PyTorch
+ is a deep learning/machine learning python library 
+built
+ in C++ and is a proven rival to 
+TensorFlow
+ in AI workflows. 
+It is cherished for its compatibility with 
+a number of
+ GPU providers and manufacturers and is also praised for its ability to 
+utilize
+ more of a GPUs resources allowing for faster compute processing
+. 
+It features multiple verbose options 
+similar to
+ that of 
+TensorFlow
+, 
+however
+ lacks its own web application for viewing diagnostic information
+ although 
+the developers managed to make 
+Pytorch
+ compatible with 
+Tensor
+B
+oard
+ (TensorFlow's web app)
+. 
+PyTorch
+ is also accredited for being much simpler to use than 
+TensorFlow 
+in
+ regards to
+ pythonic syntax. 
+It is also much easier to use on GPU manufacturers such as AMD as they have provided their own specialized version of 
+PyTorch
+ on Python 3.12 that is compatible with 
+ROCm
+ 6.4.1+ which was ported to windows, meaning the user 
+does not
+ have to use a 
+virtual
+ machine (such as WSL)
+. This new ported variant of 
+PyTorch
+ can be installed through the AMD Install 
+Manager
+ which comes included with the Radeon Adrenaline software
+.
+ 
+The library has 3 key words. Torch, torch.. And 
+torch.optim
+. Torch 
+represents
+ tensor operations and is used to 
+handle data storage, mathematical operations, hardware 
+configurations
+ and automatic differentiation. 
+Torch.nn
+ is used for building the neural networ
+ks that actually learn from the data being provided to it. 
+Torch.optim
+ refers to the different optimizers that can be applied to a neural network to increase its efficiency and hopefully create a better 
+final result
+ once training is complete.
+ 
+Regarding
+ the optimizers they offer, 
+there are many to choose from. By default, it comes with 15, however wit
+h a community addon, over 100 can be chosen from (known as 
+pytorch_optimiser
+).
+ The version 
+I'm
+ 
+utilizing
+ with the custom 
+pytorch
+ implementation only allows for optimizer 0.3.0 to be installed which features less, but they consist of the more popular and more useful optimizers. 
+Torch 
+Optimiser
+torch_optimizer
+ is a drop-in extension for 
+PyTorch's
+ native 
+torch.optim
+ module, providing a large Queen Mary University of London collection of research-grade optimizers that are fully compatible with the standard 
+optim
+ API
+, 
+meaning you can swap any of them in with a single line change. Among its most notable additions is 
+DiffGrad
+, which adjusts the learning rate based on the difference between the current and 
+previous
+ gradients, helping the optimizer slow down near flat regions and speed up in steep ones. It also includes the A2Grad family (Exp, Inc, and Uni variants), which implement 
+optimal
+ adaptive and accelerated stochastic gradient descent derived from the 2018 paper of the same name. 
+AccSGD
+ addresses the insufficiency of standard momentum schemes by using a more aggressive acceleration strategy suited for stochastic settings. 
+AdaBelief
+ adapts step sizes by measuring the "belief" in observed gradients
+. If
+ a gradient is consistent with past expectations, a large step is taken; if surprising, a smaller one is used, resulting in faster convergence and better 
+generalization
+. 
+AdaBound
+ bridges the gap between Adam and SGD by dynamically clipping the learning rate, transitioning smoothly from Adam's fast early training 
+behavior
+ to SGD's strong final convergence. Also included is Ranger, a synergistic combination of RAdam (Rectified Adam) and Lookahead, which first corrects the variance of the adaptive learning rate in early training and then applies a dual-weight update strategy to 
+stabilize
+ the 
+optimization
+ trajectory. 
+All optimizers are used identically to 
+PyTorch's
+ built-ins, making 
+torch_optimizer
+ a practical first port of call when the standard Adam or SGD are not delivering 
+optimal
+ results on a given problem.
+*
+graph
+ was 
+summarized
+ via AI*
+Possible Issues
+There is unfortunately an issue with the server laptop responsible for hosting all the data. It was intended for that device to be responsible for predicting the AI, but unfortunately the current version of Linux Mint on the laptop does not support python 3. This causes compilation issues with TensorFlow, leading to incomplete execution and inability to conclude the algorithm. This can be circumvented by one of 2 solutions. 
+The first is to use the client's device to run the prediction algorithm. This is incredibly unethical and extremely unreliable, but I will only be using this solution as a last resort if there are issues other solution and they cause it to not work. The other solution would be that my home device would be used to predict the coin prices, where I would then send the data off to my Linux server for it to be hosted. 
+My home computer’s hardware is very capable of running an AI and will be ran on my GPU which will provide maximum efficiency for processing AI (being an AMD 9070 XT with 16GB of VRAM) over the CPU, which is an AMD Ryzen 5 9600X containing 6 cores, 12 threads and a 5.4Ghz boost clock speed. I will be utilising WSL2 (Windows Subsystem for Linux 2) for running the AI as my library of choice for AI processing does not support GPU hardware acceleration for native Windows (which is my main operating system). While unrequired, WSL2 makes use of Windows Hypervisor (window’s own virtualisation technology) which unfortunately isn't present on my home machine as it comes with Windows Pro installations (and I only have Windows Home), however there are ways to bypass this. I can either replace my existing installation of Windows by switching it to the Pro variation without any data being lost, or I can manually install Hypervisor technology onto my system. 
+This comes with the risk of compatibility issues due to it not being native with the system and may be missing crucial packages for functionality, so I risk having to spend a long time troubleshooting issues, but if successful, I eliminate the time it takes having to update the operating system to a version that officially supports virtualisation technology. 
+I will attempt to manually install Hypervisor using a windows batch installer file containing the installation script, but if performance lacks due to software incompatibility, I will upgrade my system using Window’s installation media. 
+If it is required of me, I will utilise unofficial tools to switch my windows versions if any complications arise (although I would preferably not use these tools due to their controversial nature).
+Design
+UI Wireframe
+https://www.geeksforgeeks.org/python/reading-excel-file-using-python/
+READING EXCEL DOCUMENTS USING PYTHON
+https://rapidapi.com/auth?referral=%2Fstudio
+https://github.com/ovinokur
+ 
+Install TensorFlow for ROCm 
+- 
+Use ROCm on Radeon and Ryzen
+TensorFlow on ROCm installation 
+- 
+ROCm installation (Linux)
+PyTorch on ROCm installation 
+- 
+ROCm installation (Linux)
+Bibliography
+Smith, E. (2025). 
+Setting up Your API Key
+. [online] CoinGecko API Documentation. Available at: 
+https://docs.coingecko.com/reference/setting-up-your-api-key
+ [Accessed 5 Jun. 2025].
+sqlite3 
+- 
+DB-API 2.0 interface for SQLite databases
+ (no date) 
+Python documentation
+. Available at: 
+https://docs.python.org/3/library/sqlite3.html
+ (Accessed: June 13, 2025).
+Requests
+ (no date) 
+PyPI
+. Available at: 
+https://pypi.org/project/requests/
+ (Accessed: June 13, 2025).
+Quickstart
+ 
+- 
+requests 2.32.4 documentation
+ (no date) 
+Readthedocs.io
+. Available at: 
+https://requests.readthedocs.io/en/latest/user/quickstart/
+ (Accessed: June 13, 2025).
+GitHub Docs. (no date) 
+Getting started with the REST API
+. [online] Available at: 
+https://docs.github.com/en/rest/using-the-rest-api/getting-started-with-the-rest-api?apiVersion=2022-11-28
+.
+Enterprise, G. (2025). 
+GitHub CLI
+. [online] GitHub CLI. Available at: 
+https://cli.github.com/manual/gh
+ [Accessed 27 Jun. 2025].
+GeeksforGeeks (2022). 
+Bitcoin Price Prediction using Machine Learning in Python
+. [online] GeeksforGeeks. Available at: 
+https://www.geeksforgeeks.org/machine-learning/bitcoin-price-prediction-using-machine-learning-in-python/
+ [Accessed 9 Jul. 2025].
+W3schools (2024). 
+Pandas Introduction
+. [online] 
+www.w3schools.com
+. Available at: 
+https://www.w3schools.com/python/pandas/pandas_intro.asp
+.
+Matplotlib (2024). 
+Matplotlib: Python Plotting 
+- 
+Matplotlib 3.1.1 Documentation
+. [online] Matplotlib.org. Available at: 
+https://matplotlib.org/
+.
+Numpy
+.  
+https://
+Numpy.org
+, 2024, numpy.org/. Accessed 24 July 2025.
+Readthedocs.io. (2021). 
+pytorch-optimizer
+. [online] Available at: 
+https://pytorch-optimizers.readthedocs.io/en/latest/
+ [Accessed 29 Mar. 2026].
+Pytorch.org. (2025). 
+PyTorch – PyTorch
+. [online] Available at: 
+https://pytorch.org/projects/pytorch/
+.
+https://www.mybib.com/#/projects/7d7r90/citations

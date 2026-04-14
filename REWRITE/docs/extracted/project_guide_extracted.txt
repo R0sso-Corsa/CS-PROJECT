@@ -1,0 +1,335 @@
+===== slide1.xml =====
+Identification: First identify the nature of the problem
+What is the problem you want to solve?
+How will what you want to create help the user?
+Describe what you want to create
+What features may it have?
+How may you go about solving this problem?
+Why is a computer program a good way of solving this problem?
+This should only be about half a page of brief explanation about the nature of your project
+
+===== slide10.xml =====
+The difference between Essential features, requirements and success criteria
+Essential features
+A list of all the features your software must do in order to do its job
+This could be identified previously from evaluating similar systems
+Requirements
+These are things the system requires
+It could be data or a dataset
+It will be software including libraries
+It will be hardware: Provide a minimum PC spec for the program
+It is understandable and common to confuse them! Here are the differences.
+
+===== slide11.xml =====
+Justify the Essential features, requirements and success criteria
+Success criteria
+How will you measure the success of the project.
+List all the things the system should do in order to be effective.
+This will include essential features but may also include user experience (UX) and additional desired functionality
+Example
+In order to be successful my noughts and crosses game will....
+Have an AI that decides the best move for the X player
+Allow the user to input their move and check the validity of their choice
+Check for WIN/LOSS/DRAW for both players
+Allow the user to decrease the difficulty of the AI by reducing the depth of the tree viewable by the AI
+Have an easy to use, robust UI 
+Start with a splash screen with instructions
+It is understandable and common to confuse them! Here are the differences.
+
+===== slide12.xml =====
+Justify the Essential features, requirements and success criteria
+Requirements
+These are things the system requires
+It 
+could
+ be data or a dataset
+It 
+could
+ be a web server (XAMPP)
+It will be software including libraries
+It will be hardware: Provide a minimum PC spec for the program
+Example
+In order for my system to work effectively it will need...
+a knowledge tree of all possible moves for both players, created at the start of the game
+I will need a GUI software to create the UI.  I will choose 
+Pygame
+ 1.9.6 because...
+I may need to do complex manipulation of data so I will use NUMPY 2.3.0
+I will be using Python 3.8
+The minimum hardware spec that can be used for the program is....
+It is understandable and common to confuse them! Here are the differences.
+
+===== slide13.xml =====
+Project Diary - Iterative Implementation: It is important to capture all of your investigations into codes and prototype development
+Complete reviews of different libraries needed
+Add sample code and 
+printscreen
+ outputs
+Additional
+Start a 
+project diary
+ for prototypes
+The project diary will document your progress in coding
+It is proof of your implementation
+You need to add commentary about what you are doing and the results of any iterative testing on your code
+Also add comments on next steps
+For this we use a project diary.  This helps to document your project journey
+You do not need to start this now if you are not investigating prototypes and codes!
+
+===== slide14.xml =====
+Design: Decomposition
+In order to meet this requirement you will need to create a top down diagram on Draw.io
+You will need to explain what your diagram shows in some detail.  Then explain why you have broken it down in the way you have.
+Marksheet requirement: 
+Broken the problem down systematically into a series of smaller problems suitable for computational solutions, explaining and justifying the process.
+
+===== slide15.xml =====
+Design: Further Decomposition
+In order to meet this requirement you will need to create IPO module diagrams for each of the major top down diagram bottom level nodes
+Testing:  Input                 output O
+Input                output X
+Marksheet requirement: 
+Defined in detail the structure of the solution to be developed.
+Win_loss_draw
+node
+O or 
+X
+ or D or Null
+o
+o
+o
+ 
+x
+ 
+x
+ 
+x
+x
+x
+x
+ 
+ 
+ 
+ 
+o
+o
+
+===== slide16.xml =====
+Design: Detailed algorithms
+Now you have each module of your top down diagram with its IPO’s you can create a flow diagram (or pseudo code) for each of them
+The flow diagram should be accurate but does 
+not
+ need to be comprehensive
+You should explain how the modules inputs and outputs link to each other (pipelining) to create a complete system
+Marksheet requirement: 
+Described the solution fully using appropriate and accurate algorithms explaining how these algorithms form a complete solution to the problem. 
+
+===== slide17.xml =====
+Design: UI and Design Diagrams
+Now you create sketch or digital designs for your systems UI.
+You should have designs of all the main screens including
+Main screen (e.g. as shown)
+Menus
+Start screens 
+These designs can be wireframe diagrams to illustrate the layout of the content
+You will have to talk about how the user interacts with the system, buttons, control keys (
+eg
+ arrow keys), text entry boxes etc.  You should give reasons for your choices.
+Marksheet requirement: 
+Described, explaining choices made, the usability features to be included in the solution. 
+Score
+Lives
+Ground
+Player Sprite
+NPC Sprite
+Platform
+
+===== slide18.xml =====
+UI wireframe of a database form for customer information
+All your GUI screens will need a wireframe design!!!
+
+===== slide19.xml =====
+Design: Detailed algorithms
+You should attempt to list the key (important) variables that will be needed in your code
+If you miss any you can always add them later
+You will need to give details of the data structures you will need for your project 
+eg
+Database design (ERD, Data dictionary, example records/data)
+Knowledge tree (tree structure and node details – see noughts and crosses)
+2D arrays (
+eg
+ grid information on games detailing obstructions and restricted areas)
+Logic based AI  - truth tables (
+eg
+ card games)
+OOP solutions (class diagrams, object diagrams)
+You also need to detail how you will check (Validate) any data entered by the user (extension: or data from between objects – setters/encapsulation)
+Marksheet requirement: 
+Identified and justified the key variables / data structures / classes (as appropriate to the proposed solution) explaining any necessary validation. 
+
+===== slide2.xml =====
+Board games: 
+Is your project a strategy game?
+Are you making a board game with complex rules?
+You will need to describe your game and the rules of it
+List each gameplay rule
+You should graphically show how the game can be played and explain player strategy
+Create rules of best practice 
+These rules can be incorporated into your AI
+Or you AI may create a knowledge tree of all possible outcomes.  
+An AI is generally required for the highest grades but it can just utilise a set of rules rather than a knowledge tree of all possible moves
+If you solution is OOP it will 
+not
+ need AI to be a complex solution.
+You could make it two player
+Board games are a little harder to describe in analysis.  It is important the reader of your project clearly understands all the rules of the game and how the game can be won
+
+===== slide20.xml =====
+Data dictionary for a customer table
+CUSTOMER
+Fieldname
+Data type
+Validation
+Description
+Cust_ID
+Autonumber
+Primary Key Field
+Cust_SName
+Text
+50 characters max
+Customer Surname
+Cust_Name
+Text
+50 characters max
+Customer Name
+Cust_DOB
+Date/Time
+Before today
+Customer Date of Birth
+Cust_MobileNo
+Text
+11 characters only
+Customer mobile number
+All your Database tables will need a data dictionary!!!
+
+===== slide21.xml =====
+Design: Iterative test plan
+You should create a test plan that you will check the outputs of each of your main modules and make sure they have the correct outputs.
+You may also have major milestones where you integrate 2 or more modules, these can also be checked with an appropriate test to make sure they work well together.
+Test No
+Test description
+Test Data
+Expected outcome
+1
+Valid test on Win_Loss_Draw 
+O
+2
+Valid test on Win_Loss_Draw 
+X
+Marksheet requirement: 
+Identified and justified the test data to be used during the iterative development of the solution. 
+
+===== slide22.xml =====
+Design: Terminal test plan
+You should create a test plan that you will check that each of the success criteria have been met
+You will need more than one test for each success criteria!
+The test plan must be comprehensive and cover all required tests to prove that the system works correctly as specified in the success criteria
+Marksheet requirement: 
+Identified and justified any further data to be used in the post development phase.  
+
+===== slide3.xml =====
+Describing computational methods you will use to solve the problem
+Large complex problems are solved by the following computational methods
+Do NOT be too verbose on this!
+Stick to brief descriptions of how you will use each method for your project!
+Thinking Abstractly &amp; Visualisation 
+Removing unnecessary detail 
+Thinking Ahead  
+Identify the inputs and outputs for a given situation. Determine the preconditions for devising a solution to a problem. The need for reusable program components
+Thinking Procedurally &amp; Decomposition
+(a) Identify the components of a problem. (b) Identify the components of a solution to a problem. (c) Determine the order of the steps needed to solve a problem. (d) Identify sub-procedures necessary to solve a problem.
+Marksheet requirement:
+ 
+Described and justified the features that make the problem solvable by computational methods, explaining why it is amenable to a computational approach. 
+
+===== slide4.xml =====
+Describing computational methods you will use to solve the problem
+Large complex problems are solved by the following computational methods
+Do NOT be too verbose on this!
+Stick to brief descriptions of how you will use each method for your project!
+Thinking Logically
+a) Identify the points in a solution where a decision has to be taken. (b) Determine the logical conditions that affect the outcome of a decision. (c) Determine how decisions affect flow through a program.
+Thinking Concurrently  
+(a) Determine the parts of a problem that can be tackled at the same time. (b) Outline the benefits and trade offs that might result from concurrent processing in a particular situation.
+Marksheet requirement:
+ 
+Described and justified the features that make the problem solvable by computational methods, explaining why it is amenable to a computational approach. 
+
+===== slide5.xml =====
+Stakeholder Section
+You must describe the stakeholder
+Describe how they will use the system
+Justify why the system will be useful to them
+This should not be too exhaustive but should give demographic detail about the users in the description.
+Age, Gender, Likes/Dislikes/ , working  status 
+etc
+Marksheet requirement:
+ Identified suitable stakeholders for the project and described them explaining how they will make use of the proposed solution and why it is appropriate to their needs.
+
+===== slide6.xml =====
+Research: Similar programs
+Chose 2 similar solutions to your problem.  Investigate how they solved the problem
+What features do the solutions have?
+Finaly decide on what features you will use in your solution
+Do NOT be too aspirational! Remember you are creating a prototype!
+Justify why these features will be important for your solution
+Marksheet requirement: 
+Researched the problem in depth looking at existing solutions to similar problems, identifying and justifying suitable approaches based on this research.
+
+===== slide7.xml =====
+Research: Libraries and any required data
+Research into any libraries that you will need for your solution 
+eg
+ 
+Tkinter
+ VS 
+Pygame
+Find examples of use of the libraries (code and code outputs - 
+printscreens
+)
+Explain what libraries you have chosen to use and why
+Some of you may need data for your system
+Find the data using the internet or use AI to generate it
+Explain why the data will be useful to you
+Marksheet requirement: 
+Researched the problem in depth looking at existing solutions to similar problems, identifying and justifying suitable approaches based on this research.
+
+===== slide8.xml =====
+Essential features
+Using your research into similar systems make a list of all the 
+essential features
+ your system will have
+This will simply be 
+a list of all the features your software must do in-order to do its job
+Eg
+ My system will need to...
+Collect the play position from the user
+Place the players mark in position specified
+Check if this position is a win/loss/draw move
+Output win loss or draw when needed and end the game
+The system will play its move based on an AI method
+Allow the user to restart the game or quit at any point.
+Marksheet requirement: 
+identified the essential features of the proposed computational solution explaining these choices.
+
+===== slide9.xml =====
+Limitations of your system
+After listing the essential features now list the LIMITATIONS of your system
+What will you NOT be able to do and why?
+Remember it is a prototype so will not have all the features of a completed project
+E.g
+ My system will not be 
+optimised
+ to use the mini max algorithm for knowledge tree traversal
+Marksheet requirement: 
+Identified and explained with justification any limitations of the proposed solution.
