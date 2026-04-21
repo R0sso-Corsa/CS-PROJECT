@@ -6,6 +6,4 @@ require_once __DIR__ . '/includes/bootstrap.php';
 logout_user();
 ensure_session_started();
 set_flash('You have been logged out.', 'success');
-header('Location: ' . app_url('/login.php'));
-exit;
-
+redirect_to('/login.php');

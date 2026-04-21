@@ -153,6 +153,5 @@ function require_login(): void
     }
 
     set_flash('Log in to request a forecast or browse saved graphs.', 'warning');
-    header('Location: ' . app_url('/login.php'));
-    exit;
+    redirect_to('/login.php');
 }

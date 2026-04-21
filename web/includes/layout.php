@@ -38,6 +38,28 @@ function h(?string $value): string
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
 
+function redirect_to(string $path, int $status = 302): void
+{
+    $target = app_url($path);
+
+    if (!headers_sent()) {
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
+        header('Location: ' . $target, true, $status);
+    }
+
+    $escaped = h($target);
+    echo '<!DOCTYPE html><html lang="en"><head>';
+    echo '<meta charset="utf-8">';
+    echo '<meta http-equiv="refresh" content="0;url=' . $escaped . '">';
+    echo '<title>Redirecting...</title>';
+    echo '<script>window.location.replace(' . json_encode($target, JSON_UNESCAPED_SLASHES) . ');</script>';
+    echo '</head><body>';
+    echo '<p>Redirecting to <a href="' . $escaped . '">' . $escaped . '</a>...</p>';
+    echo '</body></html>';
+    exit;
+}
+
 function render_layout_start(string $title, string $active = ''): void
 {
     ensure_session_started();

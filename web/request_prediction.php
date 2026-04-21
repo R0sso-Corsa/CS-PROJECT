@@ -6,23 +6,20 @@ require_once __DIR__ . '/includes/bootstrap.php';
 require_login();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ' . app_url('/search.php'));
-    exit;
+    redirect_to('/search.php');
 }
 
 $ticker = normalise_ticker((string) ($_POST['ticker'] ?? ''));
 if ($ticker === '') {
     set_flash('Enter a valid ticker before queueing a forecast.', 'danger');
-    header('Location: ' . app_url('/search.php'));
-    exit;
+    redirect_to('/search.php');
 }
 
 $dbError = null;
 $pdo = db_optional($dbError);
 if (!$pdo instanceof PDO) {
     set_flash('The database is not connected yet, so forecast requests cannot be queued.', 'danger');
-    header('Location: ' . app_url('/search.php?ticker=' . urlencode($ticker ?: '')));
-    exit;
+    redirect_to('/search.php?ticker=' . urlencode($ticker ?: ''));
 }
 
 $user = current_user();
@@ -35,5 +32,4 @@ set_flash(
     'success'
 );
 
-header('Location: ' . app_url('/view.php?job=' . $jobId));
-exit;
+redirect_to('/view.php?job=' . $jobId);

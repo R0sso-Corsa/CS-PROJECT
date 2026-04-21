@@ -4,8 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/bootstrap.php';
 
 if (current_user() !== null) {
-    header('Location: ' . app_url('/search.php'));
-    exit;
+    redirect_to('/index.php');
 }
 
 $error = null;
@@ -15,8 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (login_user($username, $password, $error)) {
         set_flash('You are now signed in.', 'success');
-        header('Location: ' . app_url('/index.php'));
-        exit;
+        redirect_to('/index.php');
     }
 }
 
