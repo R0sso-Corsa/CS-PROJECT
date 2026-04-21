@@ -397,11 +397,18 @@ def main():
             print(f"torch.compile skipped: {e}")
     criterion = nn.MSELoss()
 
-    import torch_optimizer as optim
+    optimizer_name = cfg.optimizer_name
+    try:
+        import torch_optimizer as optim
 
-    optimizer = getattr(optim, cfg.optimizer_name)(
-        model.parameters(), weight_decay=cfg.weight_decay
-    )
+        optimizer_class = getattr(optim, optimizer_name, None)
+        if optimizer_class is None:
+            raise AttributeError(f"Optimizer {optimizer_name!r} not found in torch_optimizer")
+        optimizer = optimizer_class(model.parameters(), weight_decay=cfg.weight_decay)
+        print(f"Using torch_optimizer.{optimizer_name}.")
+    except Exception as exc:
+        print(f"Falling back to torch.optim.AdamW because optimizer setup failed: {exc}")
+        optimizer = torch.optim.AdamW(model.parameters(), weight_decay=cfg.weight_decay)
 
     t0 = time.time()
     epoch_pbar = trange(

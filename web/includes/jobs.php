@@ -249,7 +249,8 @@ function spawn_queue_worker()
 {
     ensure_storage_directories();
     $command = sprintf(
-        'nohup php %s >> %s 2>&1 &',
+        'nohup %s %s >> %s 2>&1 &',
+        escapeshellarg(PHP_CLI_BINARY),
         escapeshellarg(QUEUE_WORKER_SCRIPT),
         escapeshellarg(QUEUE_WORKER_LOG)
     );

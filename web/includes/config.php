@@ -26,6 +26,7 @@ const REMOTE_DEFAULT_BATCH_SIZE = 16;
 const REMOTE_DEFAULT_PREDICTION_DAYS = 30;
 const REMOTE_DEFAULT_FUTURE_DAYS = 30;
 const REMOTE_DEFAULT_MC_RUNS = 100;
+const PHP_CLI_BINARY = '/opt/lampp/bin/php';
 
 define('WEB_ROOT', dirname(__DIR__));
 define('WEB_STORAGE_ROOT', WEB_ROOT . '/storage');
