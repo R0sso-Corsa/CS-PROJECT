@@ -17,9 +17,17 @@ if ($ticker === '') {
     exit;
 }
 
+$dbError = null;
+$pdo = db_optional($dbError);
+if (!$pdo instanceof PDO) {
+    set_flash('The database is not connected yet, so forecast requests cannot be queued.', 'danger');
+    header('Location: ' . app_url('/search.php?ticker=' . urlencode($ticker ?: '')));
+    exit;
+}
+
 $user = current_user();
 $userId = isset($user['id']) && is_int($user['id']) ? $user['id'] : null;
-$jobId = enqueue_prediction_job(db(), $userId, $ticker);
+$jobId = enqueue_prediction_job($pdo, $userId, $ticker);
 spawn_queue_worker();
 
 set_flash(
@@ -29,4 +37,3 @@ set_flash(
 
 header('Location: ' . app_url('/view.php?job=' . $jobId));
 exit;
-

@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (create_user($username, $password, $confirmPassword, $error)) {
         set_flash('Your account has been created and you are now signed in.', 'success');
-        header('Location: ' . app_url('/search.php'));
+        header('Location: ' . app_url('/index.php'));
         exit;
     }
 }

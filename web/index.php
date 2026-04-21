@@ -3,12 +3,32 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/bootstrap.php';
 
-$stats = fetch_dashboard_stats(db());
-$recentJobs = fetch_recent_jobs(db(), 5);
-$recentGraphs = fetch_recent_graphs(db(), 4);
+$dbError = null;
+$pdo = db_optional($dbError);
+
+$stats = [
+    'queued_jobs' => 0,
+    'running_jobs' => 0,
+    'saved_graphs' => 0,
+    'tracked_tickers' => 0,
+];
+$recentJobs = [];
+$recentGraphs = [];
+
+if ($pdo instanceof PDO) {
+    $stats = fetch_dashboard_stats($pdo);
+    $recentJobs = fetch_recent_jobs($pdo, 5);
+    $recentGraphs = fetch_recent_graphs($pdo, 4);
+}
 
 render_layout_start('Home', 'home');
 ?>
+
+<?php if ($dbError !== null): ?>
+    <div class="flash flash-warning">
+        The website loaded, but the database is not connected yet. You can still test the demo login and page flow, but queueing forecasts and loading saved graphs will not work until the database is configured.
+    </div>
+<?php endif; ?>
 
 <section class="hero-panel">
     <div>

@@ -3,6 +3,11 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
 
+function db_connection_error_message(Throwable $exception): string
+{
+    return 'Database connection failed: ' . $exception->getMessage();
+}
+
 function db(): PDO
 {
     static $pdo = null;
@@ -31,3 +36,12 @@ function db(): PDO
     return $pdo;
 }
 
+function db_optional(?string &$error = null): ?PDO
+{
+    try {
+        return db();
+    } catch (Throwable $exception) {
+        $error = db_connection_error_message($exception);
+        return null;
+    }
+}

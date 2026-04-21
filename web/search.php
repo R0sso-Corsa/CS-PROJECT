@@ -5,15 +5,31 @@ require_once __DIR__ . '/includes/bootstrap.php';
 
 require_login();
 
+$dbError = null;
+$pdo = db_optional($dbError);
 $query = normalise_ticker((string) ($_GET['ticker'] ?? ''));
-$matches = $query !== '' ? search_ticker_history(db(), $query) : [];
-$existingGraphs = $query !== '' ? fetch_graphs_for_ticker(db(), $query) : [];
-$jobHistory = $query !== '' ? fetch_jobs_for_ticker(db(), $query) : [];
-$recentGraphs = $query === '' ? fetch_recent_graphs(db(), 10) : [];
-$recentJobs = fetch_recent_jobs(db(), 8);
+$matches = [];
+$existingGraphs = [];
+$jobHistory = [];
+$recentGraphs = [];
+$recentJobs = [];
+
+if ($pdo instanceof PDO) {
+    $matches = $query !== '' ? search_ticker_history($pdo, $query) : [];
+    $existingGraphs = $query !== '' ? fetch_graphs_for_ticker($pdo, $query) : [];
+    $jobHistory = $query !== '' ? fetch_jobs_for_ticker($pdo, $query) : [];
+    $recentGraphs = $query === '' ? fetch_recent_graphs($pdo, 10) : [];
+    $recentJobs = fetch_recent_jobs($pdo, 8);
+}
 
 render_layout_start('Search', 'search');
 ?>
+
+<?php if ($dbError !== null): ?>
+    <div class="flash flash-warning">
+        You are signed in, but the database is not connected yet. Search history, queueing, and saved graphs are disabled until the database is configured.
+    </div>
+<?php endif; ?>
 
 <section class="panel search-hero">
     <div class="panel-heading">
@@ -58,10 +74,14 @@ render_layout_start('Search', 'search');
             <p class="support-copy">
                 Submitting a new request will add the ticker to the queue if another training run is active. The background worker only starts one remote training job at a time.
             </p>
-            <form class="queue-form" method="post" action="<?= h(app_url('/request_prediction.php')) ?>">
-                <input type="hidden" name="ticker" value="<?= h($query) ?>">
-                <button class="button button-primary" type="submit">Create New Graph</button>
-            </form>
+            <?php if ($pdo instanceof PDO): ?>
+                <form class="queue-form" method="post" action="<?= h(app_url('/request_prediction.php')) ?>">
+                    <input type="hidden" name="ticker" value="<?= h($query) ?>">
+                    <button class="button button-primary" type="submit">Create New Graph</button>
+                </form>
+            <?php else: ?>
+                <p class="empty-state">Queueing is disabled until the database connection is working.</p>
+            <?php endif; ?>
         </article>
 
         <article class="panel">
@@ -191,4 +211,3 @@ render_layout_start('Search', 'search');
 <?php endif; ?>
 
 <?php render_layout_end(); ?>
-

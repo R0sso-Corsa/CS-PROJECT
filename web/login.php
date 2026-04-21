@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (login_user($username, $password, $error)) {
         set_flash('You are now signed in.', 'success');
-        header('Location: ' . app_url('/search.php'));
+        header('Location: ' . app_url('/index.php'));
         exit;
     }
 }
@@ -44,12 +44,11 @@ render_layout_start('Log In', 'login');
                 <span>Password</span>
                 <input type="password" name="password" placeholder="demo123" required>
             </label>
-            <button class="button button-primary" type="submit">Log In</button>
+            <div class="auth-links auth-links--inline">
+                <button class="button button-primary" type="submit">Log In</button>
+                <a class="button button-secondary" href="<?= h(app_url('/register.php')) ?>">Create Account</a>
+            </div>
         </form>
-
-        <div class="auth-links">
-            <a class="button button-secondary" href="<?= h(app_url('/register.php')) ?>">Create Account</a>
-        </div>
 
         <div class="auth-hint">
             <strong>Demo fallback:</strong> <?= h(DEMO_USERNAME) ?> / <?= h(DEMO_PASSWORD) ?>
