@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 require_once __DIR__ . '/includes/bootstrap.php';
 
@@ -11,9 +10,9 @@ $error = null;
 $username = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim((string) ($_POST['username'] ?? ''));
-    $password = (string) ($_POST['password'] ?? '');
-    $confirmPassword = (string) ($_POST['confirm_password'] ?? '');
+    $username = isset($_POST['username']) ? trim((string) $_POST['username']) : '';
+    $password = isset($_POST['password']) ? (string) $_POST['password'] : '';
+    $confirmPassword = isset($_POST['confirm_password']) ? (string) $_POST['confirm_password'] : '';
 
     if (create_user($username, $password, $confirmPassword, $error)) {
         set_flash('Your account has been created and you are now signed in.', 'success');

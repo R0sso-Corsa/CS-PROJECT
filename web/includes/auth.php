@@ -1,22 +1,21 @@
 <?php
-declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
 
-function ensure_session_started(): void
+function ensure_session_started()
 {
     if (session_status() !== PHP_SESSION_ACTIVE) {
         session_start();
     }
 }
 
-function current_user(): ?array
+function current_user()
 {
     ensure_session_started();
-    return $_SESSION['user'] ?? null;
+    return isset($_SESSION['user']) ? $_SESSION['user'] : null;
 }
 
-function set_flash(string $message, string $type = 'info'): void
+function set_flash($message, $type = 'info')
 {
     ensure_session_started();
     $_SESSION['flash'] = [
@@ -25,7 +24,7 @@ function set_flash(string $message, string $type = 'info'): void
     ];
 }
 
-function pull_flash(): ?array
+function pull_flash()
 {
     ensure_session_started();
     if (!isset($_SESSION['flash'])) {
@@ -37,7 +36,7 @@ function pull_flash(): ?array
     return $flash;
 }
 
-function establish_user_session(?int $id, string $username, bool $isDemo): void
+function establish_user_session($id, $username, $isDemo)
 {
     $_SESSION['user'] = [
         'id' => $id,
@@ -46,7 +45,7 @@ function establish_user_session(?int $id, string $username, bool $isDemo): void
     ];
 }
 
-function login_user(string $username, string $password, ?string &$error = null): bool
+function login_user($username, $password, &$error = null)
 {
     ensure_session_started();
 
@@ -64,7 +63,7 @@ function login_user(string $username, string $password, ?string &$error = null):
         );
         $stmt->execute(['username' => $username]);
         $user = $stmt->fetch();
-    } catch (Throwable $exception) {
+    } catch (Exception $exception) {
         $error = 'The database login is not available right now. If the database is not configured yet, use the demo login: demo / demo123.';
         return false;
     }
@@ -78,7 +77,7 @@ function login_user(string $username, string $password, ?string &$error = null):
     return false;
 }
 
-function create_user(string $username, string $password, string $confirmPassword, ?string &$error = null): bool
+function create_user($username, $password, $confirmPassword, &$error = null)
 {
     ensure_session_started();
 
@@ -133,20 +132,20 @@ function create_user(string $username, string $password, string $confirmPassword
 
         establish_user_session((int) db()->lastInsertId(), $username, false);
         return true;
-    } catch (Throwable $exception) {
+    } catch (Exception $exception) {
         $error = 'Account creation is not available right now. Check that the database is configured and writable.';
         return false;
     }
 }
 
-function logout_user(): void
+function logout_user()
 {
     ensure_session_started();
     $_SESSION = [];
     session_destroy();
 }
 
-function require_login(): void
+function require_login()
 {
     if (current_user() !== null) {
         return;

@@ -1,9 +1,8 @@
 <?php
-declare(strict_types=1);
 
 require_once __DIR__ . '/layout.php';
 
-function ensure_storage_directories(): void
+function ensure_storage_directories()
 {
     foreach ([WEB_STORAGE_ROOT, GRAPH_IMPORT_ROOT, LOG_ROOT] as $path) {
         if (!is_dir($path)) {
@@ -12,21 +11,27 @@ function ensure_storage_directories(): void
     }
 }
 
-function normalise_ticker(string $ticker): string
+function normalise_ticker($ticker)
 {
     $ticker = strtoupper(trim($ticker));
-    $ticker = preg_replace('/[^A-Z0-9.\-=]/', '', $ticker) ?? '';
+    $ticker = preg_replace('/[^A-Z0-9.\-=]/', '', $ticker);
+    if ($ticker === null) {
+        $ticker = '';
+    }
     return $ticker;
 }
 
-function ticker_slug(string $ticker): string
+function ticker_slug($ticker)
 {
     $slug = strtolower($ticker);
-    $slug = preg_replace('/[^a-z0-9]+/', '-', $slug) ?? 'ticker';
+    $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
+    if ($slug === null) {
+        $slug = 'ticker';
+    }
     return trim($slug, '-') ?: 'ticker';
 }
 
-function fetch_dashboard_stats(PDO $pdo): array
+function fetch_dashboard_stats($pdo)
 {
     return [
         'queued_jobs' => (int) $pdo->query("SELECT COUNT(*) FROM prediction_jobs WHERE status = 'queued'")->fetchColumn(),
@@ -36,7 +41,7 @@ function fetch_dashboard_stats(PDO $pdo): array
     ];
 }
 
-function fetch_recent_jobs(PDO $pdo, int $limit = 8): array
+function fetch_recent_jobs($pdo, $limit = 8)
 {
     $stmt = $pdo->prepare(
         "SELECT j.*, t.symbol AS ticker_symbol, u.username
@@ -51,7 +56,7 @@ function fetch_recent_jobs(PDO $pdo, int $limit = 8): array
     return $stmt->fetchAll();
 }
 
-function fetch_recent_graphs(PDO $pdo, int $limit = 8): array
+function fetch_recent_graphs($pdo, $limit = 8)
 {
     $stmt = $pdo->prepare(
         "SELECT g.*, t.symbol AS ticker_symbol, u.username
@@ -66,7 +71,7 @@ function fetch_recent_graphs(PDO $pdo, int $limit = 8): array
     return $stmt->fetchAll();
 }
 
-function search_ticker_history(PDO $pdo, string $query): array
+function search_ticker_history($pdo, $query)
 {
     $query = normalise_ticker($query);
     if ($query === '') {
@@ -88,7 +93,7 @@ function search_ticker_history(PDO $pdo, string $query): array
     return $stmt->fetchAll();
 }
 
-function fetch_graphs_for_ticker(PDO $pdo, string $ticker, int $limit = 12): array
+function fetch_graphs_for_ticker($pdo, $ticker, $limit = 12)
 {
     $stmt = $pdo->prepare(
         "SELECT g.*, t.symbol AS ticker_symbol, u.username
@@ -105,7 +110,7 @@ function fetch_graphs_for_ticker(PDO $pdo, string $ticker, int $limit = 12): arr
     return $stmt->fetchAll();
 }
 
-function fetch_jobs_for_ticker(PDO $pdo, string $ticker, int $limit = 8): array
+function fetch_jobs_for_ticker($pdo, $ticker, $limit = 8)
 {
     $stmt = $pdo->prepare(
         "SELECT j.*, t.symbol AS ticker_symbol, u.username
@@ -122,7 +127,7 @@ function fetch_jobs_for_ticker(PDO $pdo, string $ticker, int $limit = 8): array
     return $stmt->fetchAll();
 }
 
-function get_or_create_ticker(PDO $pdo, string $ticker): array
+function get_or_create_ticker($pdo, $ticker)
 {
     $ticker = normalise_ticker($ticker);
     $select = $pdo->prepare('SELECT * FROM tickers WHERE symbol = :symbol LIMIT 1');
@@ -150,7 +155,7 @@ function get_or_create_ticker(PDO $pdo, string $ticker): array
     ];
 }
 
-function enqueue_prediction_job(PDO $pdo, ?int $userId, string $ticker): int
+function enqueue_prediction_job($pdo, $userId, $ticker)
 {
     $tickerRow = get_or_create_ticker($pdo, $ticker);
 
@@ -174,7 +179,7 @@ function enqueue_prediction_job(PDO $pdo, ?int $userId, string $ticker): int
     return (int) $pdo->lastInsertId();
 }
 
-function find_job(PDO $pdo, int $jobId): ?array
+function find_job($pdo, $jobId)
 {
     $stmt = $pdo->prepare(
         "SELECT j.*, t.symbol AS ticker_symbol, g.id AS saved_graph_id, u.username
@@ -190,7 +195,7 @@ function find_job(PDO $pdo, int $jobId): ?array
     return is_array($row) ? $row : null;
 }
 
-function find_graph(PDO $pdo, int $graphId): ?array
+function find_graph($pdo, $graphId)
 {
     $stmt = $pdo->prepare(
         "SELECT g.*, t.symbol AS ticker_symbol, u.username
@@ -205,7 +210,7 @@ function find_graph(PDO $pdo, int $graphId): ?array
     return is_array($row) ? $row : null;
 }
 
-function graph_asset_exists(PDO $pdo, int $graphId, string $kind): bool
+function graph_asset_exists($pdo, $graphId, $kind)
 {
     $stmt = $pdo->prepare(
         "SELECT 1
@@ -220,7 +225,7 @@ function graph_asset_exists(PDO $pdo, int $graphId, string $kind): bool
     return (bool) $stmt->fetchColumn();
 }
 
-function queue_position(PDO $pdo, int $jobId): ?int
+function queue_position($pdo, $jobId)
 {
     $job = find_job($pdo, $jobId);
     if ($job === null || $job['status'] !== 'queued') {
@@ -240,7 +245,7 @@ function queue_position(PDO $pdo, int $jobId): ?int
     return (int) $stmt->fetchColumn();
 }
 
-function spawn_queue_worker(): void
+function spawn_queue_worker()
 {
     ensure_storage_directories();
     $command = sprintf(
@@ -251,7 +256,7 @@ function spawn_queue_worker(): void
     @exec($command);
 }
 
-function process_prediction_queue(PDO $pdo): void
+function process_prediction_queue($pdo)
 {
     ensure_storage_directories();
 
@@ -277,7 +282,7 @@ function process_prediction_queue(PDO $pdo): void
                 $imports = import_remote_manifest($manifest, $job);
                 $graphId = save_graph_from_job($pdo, $job, $manifest, $imports);
                 mark_job_completed($pdo, (int) $job['id'], $graphId, $manifest);
-            } catch (Throwable $error) {
+            } catch (Exception $error) {
                 mark_job_failed($pdo, (int) $job['id'], $error->getMessage());
             }
         }
@@ -287,7 +292,7 @@ function process_prediction_queue(PDO $pdo): void
     }
 }
 
-function claim_next_job(PDO $pdo): ?array
+function claim_next_job($pdo)
 {
     $pdo->beginTransaction();
 
@@ -322,7 +327,7 @@ function claim_next_job(PDO $pdo): ?array
         );
         $update->execute(['job_id' => (int) $row['id']]);
         $pdo->commit();
-    } catch (Throwable $error) {
+    } catch (Exception $error) {
         $pdo->rollBack();
         throw $error;
     }
@@ -330,7 +335,7 @@ function claim_next_job(PDO $pdo): ?array
     return find_job($pdo, (int) $row['id']);
 }
 
-function mark_job_completed(PDO $pdo, int $jobId, int $graphId, array $manifest): void
+function mark_job_completed($pdo, $jobId, $graphId, $manifest)
 {
     $stmt = $pdo->prepare(
         "UPDATE prediction_jobs
@@ -347,7 +352,7 @@ function mark_job_completed(PDO $pdo, int $jobId, int $graphId, array $manifest)
     ]);
 }
 
-function mark_job_failed(PDO $pdo, int $jobId, string $message): void
+function mark_job_failed($pdo, $jobId, $message)
 {
     $stmt = $pdo->prepare(
         "UPDATE prediction_jobs
@@ -362,7 +367,7 @@ function mark_job_failed(PDO $pdo, int $jobId, string $message): void
     ]);
 }
 
-function build_remote_command(array $job): string
+function build_remote_command($job)
 {
     $remoteScript = str_replace('\\', '/', REMOTE_REPO_ROOT) . '/web/tools/run_remote_prediction_job.py';
 
@@ -392,7 +397,7 @@ function build_remote_command(array $job): string
     return implode(' ', $parts);
 }
 
-function run_remote_training_job(array $job): array
+function run_remote_training_job($job)
 {
     $sshTarget = REMOTE_SSH_USER . '@' . REMOTE_SSH_HOST;
     $remoteCommand = build_remote_command($job);
@@ -428,7 +433,7 @@ function run_remote_training_job(array $job): array
     throw new RuntimeException('Remote training returned unreadable JSON manifest.');
 }
 
-function normalise_remote_scp_path(string $path): string
+function normalise_remote_scp_path($path)
 {
     $path = str_replace('\\', '/', $path);
     if (preg_match('/^[A-Za-z]:\//', $path) === 1) {
@@ -437,7 +442,7 @@ function normalise_remote_scp_path(string $path): string
     return $path;
 }
 
-function scp_remote_file(string $remotePath, string $localPath): void
+function scp_remote_file($remotePath, $localPath)
 {
     $scpSource = REMOTE_SSH_USER . '@' . REMOTE_SSH_HOST . ':' . normalise_remote_scp_path($remotePath);
     $command = sprintf(
@@ -456,7 +461,7 @@ function scp_remote_file(string $remotePath, string $localPath): void
     }
 }
 
-function import_remote_manifest(array $manifest, array $job): array
+function import_remote_manifest($manifest, $job)
 {
     $ticker = normalise_ticker((string) $job['requested_ticker']);
     $jobDir = GRAPH_IMPORT_ROOT . '/' . ticker_slug($ticker) . '/job_' . (int) $job['id'];
@@ -474,7 +479,7 @@ function import_remote_manifest(array $manifest, array $job): array
         'manifest_json' => $jobDir . '/manifest.json',
     ];
 
-    $remoteFiles = $manifest['files'] ?? [];
+    $remoteFiles = isset($manifest['files']) && is_array($manifest['files']) ? $manifest['files'] : [];
     $required = [
         'summary_plot' => $local['summary_plot'],
         'detail_plot' => $local['detail_plot'],
@@ -501,10 +506,10 @@ function import_remote_manifest(array $manifest, array $job): array
     return $local;
 }
 
-function save_graph_from_job(PDO $pdo, array $job, array $manifest, array $imports): int
+function save_graph_from_job($pdo, $job, $manifest, $imports)
 {
-    $summary = $manifest['summary'] ?? null;
-    $stats = $manifest['stats'] ?? [];
+    $summary = isset($manifest['summary']) ? $manifest['summary'] : null;
+    $stats = isset($manifest['stats']) && is_array($manifest['stats']) ? $manifest['stats'] : [];
 
     $stmt = $pdo->prepare(
         "INSERT INTO saved_graphs
@@ -516,12 +521,12 @@ function save_graph_from_job(PDO $pdo, array $job, array $manifest, array $impor
     $stmt->bindValue('user_id', $job['user_id'], $job['user_id'] === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
     $stmt->bindValue('ticker_id', (int) $job['ticker_id'], PDO::PARAM_INT);
     $stmt->bindValue('title', (string) $job['requested_ticker'] . ' forecast run #' . (int) $job['id']);
-    $stmt->bindValue('summary_text', (string) ($summary ?? 'Queued training result imported from the remote forecasting machine.'));
+    $stmt->bindValue('summary_text', (string) ($summary !== null ? $summary : 'Queued training result imported from the remote forecasting machine.'));
     $stmt->bindValue('summary_plot_path', $imports['summary_plot']);
     $stmt->bindValue('detail_plot_path', $imports['detail_plot']);
     $stmt->bindValue('predictions_csv_path', $imports['predictions_csv']);
     $stmt->bindValue('forecast_csv_path', $imports['forecast_csv']);
-    $stmt->bindValue('remote_job_directory', (string) ($manifest['job_dir'] ?? ''));
+    $stmt->bindValue('remote_job_directory', isset($manifest['job_dir']) ? (string) $manifest['job_dir'] : '');
     $stmt->execute();
 
     $graphId = (int) $pdo->lastInsertId();
@@ -557,4 +562,3 @@ function save_graph_from_job(PDO $pdo, array $job, array $manifest, array $impor
 
     return $graphId;
 }
-

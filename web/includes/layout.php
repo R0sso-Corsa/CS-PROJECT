@@ -1,15 +1,14 @@
 <?php
-declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
 
-function app_base_path(): string
+function app_base_path()
 {
     if (APP_BASE_URL !== '') {
         return '/' . trim(APP_BASE_URL, '/');
     }
 
-    $scriptName = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
+    $scriptName = isset($_SERVER['SCRIPT_NAME']) ? (string) $_SERVER['SCRIPT_NAME'] : '';
     if ($scriptName === '') {
         return '';
     }
@@ -22,7 +21,7 @@ function app_base_path(): string
     return '/' . trim($dir, '/');
 }
 
-function app_url(string $path = ''): string
+function app_url($path = '')
 {
     $base = rtrim(app_base_path(), '/');
     $tail = '/' . ltrim($path, '/');
@@ -33,12 +32,12 @@ function app_url(string $path = ''): string
     return $base . $tail;
 }
 
-function h(?string $value): string
+function h($value)
 {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
 
-function redirect_to(string $path, int $status = 302): void
+function redirect_to($path, $status = 302)
 {
     $target = app_url($path);
 
@@ -60,7 +59,7 @@ function redirect_to(string $path, int $status = 302): void
     exit;
 }
 
-function render_layout_start(string $title, string $active = ''): void
+function render_layout_start($title, $active = '')
 {
     ensure_session_started();
     $user = current_user();
@@ -106,7 +105,7 @@ function render_layout_start(string $title, string $active = ''): void
     <?php
 }
 
-function render_layout_end(): void
+function render_layout_end()
 {
     ?>
     </main>

@@ -1,12 +1,11 @@
 <?php
-declare(strict_types=1);
 
 require_once __DIR__ . '/includes/bootstrap.php';
 
 require_login();
 
 $graphId = isset($_GET['graph']) ? (int) $_GET['graph'] : 0;
-$kind = (string) ($_GET['kind'] ?? 'summary');
+$kind = isset($_GET['kind']) ? (string) $_GET['kind'] : 'summary';
 if (!in_array($kind, ['summary', 'detail'], true) || $graphId <= 0) {
     http_response_code(404);
     exit;

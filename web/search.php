@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 require_once __DIR__ . '/includes/bootstrap.php';
 
@@ -7,7 +6,7 @@ require_login();
 
 $dbError = null;
 $pdo = db_optional($dbError);
-$query = normalise_ticker((string) ($_GET['ticker'] ?? ''));
+$query = isset($_GET['ticker']) ? normalise_ticker((string) $_GET['ticker']) : '';
 $matches = [];
 $existingGraphs = [];
 $jobHistory = [];
@@ -101,7 +100,7 @@ render_layout_start('Search', 'search');
                                 <strong><?= h($match['symbol']) ?></strong>
                                 <span><?= h((string) $match['graph_count']) ?> saved graphs</span>
                             </div>
-                            <small><?= h((string) ($match['latest_graph_at'] ?? 'No graph imported yet')) ?></small>
+                            <small><?= h(isset($match['latest_graph_at']) ? (string) $match['latest_graph_at'] : 'No graph imported yet') ?></small>
                         </div>
                     <?php endforeach; ?>
                 </div>

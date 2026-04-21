@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 require_once __DIR__ . '/includes/bootstrap.php';
 
@@ -58,7 +57,7 @@ render_layout_start('View', 'search');
             <?php if ($job['status'] === 'queued'): ?>
                 <div class="info-item">
                     <span>Queue Position</span>
-                    <strong><?= h((string) (queue_position(db(), (int) $job['id']) ?? 1)) ?></strong>
+                    <strong><?= h((string) (($position = queue_position(db(), (int) $job['id'])) !== null ? $position : 1)) ?></strong>
                 </div>
             <?php endif; ?>
         </div>
@@ -168,4 +167,3 @@ render_layout_start('View', 'search');
 </section>
 
 <?php render_layout_end(); ?>
-

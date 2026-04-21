@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 require_once __DIR__ . '/includes/bootstrap.php';
 
@@ -9,8 +8,8 @@ if (current_user() !== null) {
 
 $error = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim((string) ($_POST['username'] ?? ''));
-    $password = (string) ($_POST['password'] ?? '');
+    $username = isset($_POST['username']) ? trim((string) $_POST['username']) : '';
+    $password = isset($_POST['password']) ? (string) $_POST['password'] : '';
 
     if (login_user($username, $password, $error)) {
         set_flash('You are now signed in.', 'success');

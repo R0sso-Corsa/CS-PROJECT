@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 require_once __DIR__ . '/includes/bootstrap.php';
 
@@ -9,7 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     redirect_to('/search.php');
 }
 
-$ticker = normalise_ticker((string) ($_POST['ticker'] ?? ''));
+$ticker = isset($_POST['ticker']) ? normalise_ticker((string) $_POST['ticker']) : '';
 if ($ticker === '') {
     set_flash('Enter a valid ticker before queueing a forecast.', 'danger');
     redirect_to('/search.php');

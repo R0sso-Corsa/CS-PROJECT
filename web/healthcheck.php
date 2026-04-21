@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 require_once __DIR__ . '/includes/bootstrap.php';
 
@@ -38,7 +37,7 @@ try {
         $storageProbeMessage = 'Probe file written successfully.';
         @unlink($tempProbePath);
     }
-} catch (Throwable $exception) {
+} catch (Exception $exception) {
     $storageProbeMessage = 'Exception while writing probe file: ' . $exception->getMessage();
 }
 
@@ -66,7 +65,7 @@ $checks = [
     [
         'label' => 'Database connection',
         'ok' => $pdo instanceof PDO,
-        'detail' => $pdo instanceof PDO ? 'Connected to ' . DB_NAME : ($dbError ?? 'Unknown database error'),
+        'detail' => $pdo instanceof PDO ? 'Connected to ' . DB_NAME : ($dbError !== null ? $dbError : 'Unknown database error'),
     ],
 ];
 
@@ -125,19 +124,19 @@ render_layout_start('Health Check', 'home');
             <div class="list-card list-card-static">
                 <div>
                     <strong>Script name</strong>
-                    <span><?= h((string) ($_SERVER['SCRIPT_NAME'] ?? 'unknown')) ?></span>
+                    <span><?= h(isset($_SERVER['SCRIPT_NAME']) ? (string) $_SERVER['SCRIPT_NAME'] : 'unknown') ?></span>
                 </div>
             </div>
             <div class="list-card list-card-static">
                 <div>
                     <strong>Request URI</strong>
-                    <span><?= h((string) ($_SERVER['REQUEST_URI'] ?? 'unknown')) ?></span>
+                    <span><?= h(isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : 'unknown') ?></span>
                 </div>
             </div>
             <div class="list-card list-card-static">
                 <div>
                     <strong>Signed-in user</strong>
-                    <span><?= h($user['username'] ?? 'No active session user') ?></span>
+                    <span><?= h(isset($user['username']) ? $user['username'] : 'No active session user') ?></span>
                 </div>
             </div>
         </div>

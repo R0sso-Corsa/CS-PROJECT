@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 const APP_NAME = 'SignalStack Forecast Portal';
 const APP_BASE_URL = '';
@@ -35,4 +34,3 @@ define('LOG_ROOT', WEB_STORAGE_ROOT . '/logs');
 define('QUEUE_WORKER_SCRIPT', WEB_ROOT . '/cli/process_queue.php');
 define('QUEUE_WORKER_LOG', LOG_ROOT . '/queue-worker.log');
 define('QUEUE_WORKER_LOCK', LOG_ROOT . '/queue-worker.lock');
-
