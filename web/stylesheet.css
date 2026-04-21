@@ -369,12 +369,20 @@ input:focus {
 }
 
 .auth-hint,
-.demo-credentials {
+.demo-credentials,
+.auth-links {
     margin-top: 20px;
     padding: 16px;
     border-radius: var(--radius-md);
     background: rgba(13, 122, 111, 0.05);
     color: var(--muted);
+}
+
+.auth-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: flex-start;
 }
 
 .demo-credentials {

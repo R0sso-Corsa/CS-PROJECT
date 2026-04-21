@@ -47,6 +47,10 @@ render_layout_start('Log In', 'login');
             <button class="button button-primary" type="submit">Log In</button>
         </form>
 
+        <div class="auth-links">
+            <a class="button button-secondary" href="<?= h(app_url('/register.php')) ?>">Create Account</a>
+        </div>
+
         <div class="auth-hint">
             <strong>Demo fallback:</strong> <?= h(DEMO_USERNAME) ?> / <?= h(DEMO_PASSWORD) ?>
         </div>

@@ -3,9 +3,28 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
 
+function app_base_path(): string
+{
+    if (APP_BASE_URL !== '') {
+        return '/' . trim(APP_BASE_URL, '/');
+    }
+
+    $scriptName = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
+    if ($scriptName === '') {
+        return '';
+    }
+
+    $dir = str_replace('\\', '/', dirname($scriptName));
+    if ($dir === '/' || $dir === '.') {
+        return '';
+    }
+
+    return '/' . trim($dir, '/');
+}
+
 function app_url(string $path = ''): string
 {
-    $base = rtrim(APP_BASE_URL, '/');
+    $base = rtrim(app_base_path(), '/');
     $tail = '/' . ltrim($path, '/');
     if ($base === '') {
         return $tail;
@@ -52,6 +71,7 @@ function render_layout_start(string $title, string $active = ''): void
                 <a href="<?= h(app_url('/logout.php')) ?>">Log Out</a>
             <?php else: ?>
                 <a class="<?= $active === 'login' ? 'active' : '' ?>" href="<?= h(app_url('/login.php')) ?>">Log In</a>
+                <a class="<?= $active === 'register' ? 'active' : '' ?>" href="<?= h(app_url('/register.php')) ?>">Create Account</a>
             <?php endif; ?>
         </nav>
     </header>
@@ -76,4 +96,3 @@ function render_layout_end(): void
 </html>
     <?php
 }
-

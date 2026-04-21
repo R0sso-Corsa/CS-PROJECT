@@ -21,6 +21,7 @@ render_layout_start('Home', 'home');
         <div class="hero-actions">
             <a class="button button-primary" href="<?= h(app_url('/search.php')) ?>">Open Search Page</a>
             <a class="button button-secondary" href="<?= h(app_url('/login.php')) ?>">Log In</a>
+            <a class="button button-secondary" href="<?= h(app_url('/register.php')) ?>">Create Account</a>
         </div>
     </div>
     <div class="hero-grid">
@@ -134,4 +135,3 @@ render_layout_start('Home', 'home');
 </section>
 
 <?php render_layout_end(); ?>
-
