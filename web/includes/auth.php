@@ -37,27 +37,9 @@ function pull_flash(): ?array
     return $flash;
 }
 
-function login_user(string $username, string $password): bool
+function login_user(string $username, string $password, ?string &$error = null): bool
 {
     ensure_session_started();
-
-    $stmt = db()->prepare(
-        'SELECT id, username, password_hash
-         FROM app_users
-         WHERE username = :username
-         LIMIT 1'
-    );
-    $stmt->execute(['username' => $username]);
-    $user = $stmt->fetch();
-
-    if (is_array($user) && password_verify($password, (string) $user['password_hash'])) {
-        $_SESSION['user'] = [
-            'id' => (int) $user['id'],
-            'username' => (string) $user['username'],
-            'is_demo' => false,
-        ];
-        return true;
-    }
 
     if ($username === DEMO_USERNAME && $password === DEMO_PASSWORD) {
         $_SESSION['user'] = [
@@ -68,6 +50,30 @@ function login_user(string $username, string $password): bool
         return true;
     }
 
+    try {
+        $stmt = db()->prepare(
+            'SELECT id, username, password_hash
+             FROM app_users
+             WHERE username = :username
+             LIMIT 1'
+        );
+        $stmt->execute(['username' => $username]);
+        $user = $stmt->fetch();
+    } catch (Throwable $exception) {
+        $error = 'The database login is not available right now. If the database is not configured yet, use the demo login: demo / demo123.';
+        return false;
+    }
+
+    if (is_array($user) && password_verify($password, (string) $user['password_hash'])) {
+        $_SESSION['user'] = [
+            'id' => (int) $user['id'],
+            'username' => (string) $user['username'],
+            'is_demo' => false,
+        ];
+        return true;
+    }
+
+    $error = 'Those credentials were not accepted.';
     return false;
 }
 
@@ -88,4 +94,3 @@ function require_login(): void
     header('Location: ' . app_url('/login.php'));
     exit;
 }
-

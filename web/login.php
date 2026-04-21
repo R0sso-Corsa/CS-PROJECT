@@ -13,13 +13,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim((string) ($_POST['username'] ?? ''));
     $password = (string) ($_POST['password'] ?? '');
 
-    if (login_user($username, $password)) {
+    if (login_user($username, $password, $error)) {
         set_flash('You are now signed in.', 'success');
         header('Location: ' . app_url('/search.php'));
         exit;
     }
-
-    $error = 'Those credentials were not accepted.';
 }
 
 render_layout_start('Log In', 'login');
@@ -56,4 +54,3 @@ render_layout_start('Log In', 'login');
 </section>
 
 <?php render_layout_end(); ?>
-
