@@ -368,34 +368,41 @@ function mark_job_failed($pdo, $jobId, $message)
     ]);
 }
 
+function powershell_literal($value)
+{
+    return "'" . str_replace("'", "''", (string) $value) . "'";
+}
+
 function build_remote_command($job)
 {
     $remoteScript = str_replace('\\', '/', REMOTE_REPO_ROOT) . '/web/tools/run_remote_prediction_job.py';
-
     $parts = [
-        escapeshellarg(REMOTE_PYTHON),
-        escapeshellarg($remoteScript),
-        '--ticker',
-        escapeshellarg((string) $job['requested_ticker']),
-        '--job-id',
-        escapeshellarg((string) $job['id']),
-        '--device',
-        escapeshellarg((string) $job['requested_device']),
-        '--epochs',
-        escapeshellarg((string) $job['requested_epochs']),
-        '--batch-size',
-        escapeshellarg((string) $job['requested_batch_size']),
-        '--prediction-days',
-        escapeshellarg((string) $job['requested_prediction_days']),
-        '--future-days',
-        escapeshellarg((string) $job['requested_future_days']),
-        '--mc-runs',
-        escapeshellarg((string) $job['requested_mc_runs']),
-        '--output-root',
-        escapeshellarg(REMOTE_OUTPUT_ROOT),
+        powershell_literal(REMOTE_PYTHON),
+        powershell_literal($remoteScript),
+        powershell_literal('--ticker'),
+        powershell_literal((string) $job['requested_ticker']),
+        powershell_literal('--job-id'),
+        powershell_literal((string) $job['id']),
+        powershell_literal('--device'),
+        powershell_literal((string) $job['requested_device']),
+        powershell_literal('--epochs'),
+        powershell_literal((string) $job['requested_epochs']),
+        powershell_literal('--batch-size'),
+        powershell_literal((string) $job['requested_batch_size']),
+        powershell_literal('--prediction-days'),
+        powershell_literal((string) $job['requested_prediction_days']),
+        powershell_literal('--future-days'),
+        powershell_literal((string) $job['requested_future_days']),
+        powershell_literal('--mc-runs'),
+        powershell_literal((string) $job['requested_mc_runs']),
+        powershell_literal('--output-root'),
+        powershell_literal(REMOTE_OUTPUT_ROOT),
     ];
 
-    return implode(' ', $parts);
+    $psCommand = '& ' . implode(' ', $parts);
+    return 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "' .
+        str_replace('"', '\"', $psCommand) .
+        '"';
 }
 
 function run_remote_training_job($job)
