@@ -3,48 +3,45 @@ document.addEventListener("DOMContentLoaded", () => {
         maxEntries: 40,
     };
 
-    function createDebugPanel() {
-        const panel = document.createElement("aside");
-        panel.className = "debug-panel";
-        panel.innerHTML = `
-            <div class="debug-panel__header">
-                <strong>Button Debug</strong>
-                <button type="button" class="debug-panel__clear">Clear</button>
-            </div>
-            <div class="debug-panel__body"></div>
-        `;
+    function createDebugArea() {
+        const container = document.createElement("section");
+        container.id = "debug-log";
 
-        document.body.appendChild(panel);
+        const heading = document.createElement("h2");
+        heading.textContent = "Debug Log";
 
-        const body = panel.querySelector(".debug-panel__body");
-        const clearButton = panel.querySelector(".debug-panel__clear");
+        const clearButton = document.createElement("button");
+        clearButton.type = "button";
+        clearButton.textContent = "Clear";
 
-        clearButton?.addEventListener("click", () => {
-            if (body) {
-                body.innerHTML = "";
-            }
+        const list = document.createElement("div");
+        list.id = "debug-log-entries";
+
+        container.appendChild(heading);
+        container.appendChild(clearButton);
+        container.appendChild(list);
+        document.body.appendChild(container);
+
+        clearButton.addEventListener("click", () => {
+            list.innerHTML = "";
             console.clear();
-            console.log("[SignalStack Debug] Debug panel cleared.");
+            console.log("[SignalStack Debug] Debug log cleared.");
         });
 
-        return {
-            panel,
-            body,
-        };
+        return list;
     }
 
-    const debugPanel = createDebugPanel();
+    const debugList = createDebugArea();
 
     function appendDebugLine(message, type = "info") {
         const timestamp = new Date().toLocaleTimeString();
-        const line = document.createElement("div");
-        line.className = `debug-line debug-line--${type}`;
+        const line = document.createElement("p");
+        line.setAttribute("data-type", type);
         line.textContent = `[${timestamp}] ${message}`;
+        debugList.prepend(line);
 
-        debugPanel.body?.prepend(line);
-
-        while (debugPanel.body && debugPanel.body.children.length > debugState.maxEntries) {
-            debugPanel.body.removeChild(debugPanel.body.lastChild);
+        while (debugList.children.length > debugState.maxEntries) {
+            debugList.removeChild(debugList.lastChild);
         }
     }
 
@@ -95,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const ticker = button.getAttribute("data-fill-ticker") || "";
                 searchInput.value = ticker;
                 searchInput.focus();
-                logDebug(`Ticker chip pressed: ${ticker}`, { ticker }, "action");
+                logDebug(`Ticker quick-fill pressed: ${ticker}`, { ticker }, "action");
             }
         });
     });
@@ -108,7 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            const buttonLike = target.closest("button, a.button, input[type='submit'], input[type='button']");
+            const buttonLike = target.closest("button, a, input[type='submit'], input[type='button']");
             if (!(buttonLike instanceof HTMLElement)) {
                 return;
             }
@@ -118,7 +115,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const form = buttonLike.closest("form");
 
             logDebug(
-                `Button clicked: ${label}`,
+                `Element clicked: ${label}`,
                 {
                     tag: buttonLike.tagName.toLowerCase(),
                     href,

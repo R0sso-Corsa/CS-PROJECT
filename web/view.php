@@ -28,142 +28,104 @@ render_layout_start('View', 'search');
 ?>
 
 <?php if ($job !== null): ?>
-    <section class="panel">
-        <div class="panel-heading">
-            <div>
-                <p class="eyebrow">Queued Forecast</p>
-                <h1>Job #<?= h((string) $job['id']) ?> for <?= h($job['ticker_symbol']) ?></h1>
-            </div>
-            <span class="status-pill status-<?= h((string) $job['status']) ?>"><?= h((string) $job['status']) ?></span>
-        </div>
-
-        <div class="info-grid">
-            <div class="info-item">
-                <span>Requested</span>
-                <strong><?= h((string) $job['created_at']) ?></strong>
-            </div>
-            <div class="info-item">
-                <span>Device</span>
-                <strong><?= h((string) $job['requested_device']) ?></strong>
-            </div>
-            <div class="info-item">
-                <span>Epochs</span>
-                <strong><?= h((string) $job['requested_epochs']) ?></strong>
-            </div>
-            <div class="info-item">
-                <span>Future Days</span>
-                <strong><?= h((string) $job['requested_future_days']) ?></strong>
-            </div>
+    <section>
+        <h1>Job #<?= h((string) $job['id']) ?> for <?= h($job['ticker_symbol']) ?></h1>
+        <p>Status: <?= h((string) $job['status']) ?></p>
+        <dl>
+            <dt>Requested</dt>
+            <dd><?= h((string) $job['created_at']) ?></dd>
+            <dt>Device</dt>
+            <dd><?= h((string) $job['requested_device']) ?></dd>
+            <dt>Epochs</dt>
+            <dd><?= h((string) $job['requested_epochs']) ?></dd>
+            <dt>Future days</dt>
+            <dd><?= h((string) $job['requested_future_days']) ?></dd>
             <?php if ($job['status'] === 'queued'): ?>
-                <div class="info-item">
-                    <span>Queue Position</span>
-                    <strong><?= h((string) (($position = queue_position(db(), (int) $job['id'])) !== null ? $position : 1)) ?></strong>
-                </div>
+                <dt>Queue position</dt>
+                <dd><?= h((string) (($position = queue_position(db(), (int) $job['id'])) !== null ? $position : 1)) ?></dd>
             <?php endif; ?>
-        </div>
+        </dl>
 
         <?php if (!empty($job['failure_message'])): ?>
-            <div class="flash flash-danger"><?= h((string) $job['failure_message']) ?></div>
+            <section>
+                <p><strong>Error:</strong> <?= h((string) $job['failure_message']) ?></p>
+            </section>
         <?php elseif (!empty($job['output_message'])): ?>
-            <div class="flash flash-success"><?= h((string) $job['output_message']) ?></div>
+            <section>
+                <p><strong>Update:</strong> <?= h((string) $job['output_message']) ?></p>
+            </section>
         <?php endif; ?>
 
         <?php if (!empty($job['saved_graph_id'])): ?>
-            <div class="hero-actions">
-                <a class="button button-primary" href="<?= h(app_url('/view.php?graph=' . (int) $job['saved_graph_id'])) ?>">Open Finished Graph</a>
-            </div>
+            <p><a href="<?= h(app_url('/view.php?graph=' . (int) $job['saved_graph_id'])) ?>">Open Finished Graph</a></p>
         <?php endif; ?>
     </section>
 <?php endif; ?>
 
 <?php if ($graph !== null): ?>
-    <section class="panel">
-        <div class="panel-heading">
-            <div>
-                <p class="eyebrow">Saved Graph</p>
-                <h1><?= h($graph['title']) ?></h1>
-            </div>
-            <span class="status-pill status-completed">archived</span>
-        </div>
-        <p class="support-copy"><?= nl2br(h((string) $graph['summary_text'])) ?></p>
+    <section>
+        <h1><?= h($graph['title']) ?></h1>
+        <p>Ticker: <?= h($graph['ticker_symbol']) ?></p>
+        <p><?= nl2br(h((string) $graph['summary_text'])) ?></p>
 
-        <div class="graph-grid">
-            <article class="graph-card">
-                <h2>Primary View</h2>
-                <?php if (graph_asset_exists(db(), (int) $graph['id'], 'summary')): ?>
-                    <img src="<?= h(app_url('/asset.php?graph=' . (int) $graph['id'] . '&kind=summary')) ?>" alt="Summary graph for <?= h($graph['ticker_symbol']) ?>">
-                <?php else: ?>
-                    <p class="empty-state">Summary graph asset is not available yet.</p>
-                <?php endif; ?>
-            </article>
-            <article class="graph-card">
-                <h2>Forecast Detail</h2>
-                <?php if (graph_asset_exists(db(), (int) $graph['id'], 'detail')): ?>
-                    <img src="<?= h(app_url('/asset.php?graph=' . (int) $graph['id'] . '&kind=detail')) ?>" alt="Forecast detail graph for <?= h($graph['ticker_symbol']) ?>">
-                <?php else: ?>
-                    <p class="empty-state">Detail graph asset is not available yet.</p>
-                <?php endif; ?>
-            </article>
-        </div>
+        <section>
+            <h2>Primary view</h2>
+            <?php if (graph_asset_exists(db(), (int) $graph['id'], 'summary')): ?>
+                <img src="<?= h(app_url('/asset.php?graph=' . (int) $graph['id'] . '&kind=summary')) ?>" alt="Summary graph for <?= h($graph['ticker_symbol']) ?>">
+            <?php else: ?>
+                <p>Summary graph asset is not available yet.</p>
+            <?php endif; ?>
+        </section>
 
-        <div class="hero-actions">
-            <form method="post" action="<?= h(app_url('/request_prediction.php')) ?>">
-                <input type="hidden" name="ticker" value="<?= h($graph['ticker_symbol']) ?>">
-                <button class="button button-primary" type="submit">Create New Graph</button>
-            </form>
-            <a class="button button-secondary" href="<?= h(app_url('/search.php?ticker=' . urlencode((string) $graph['ticker_symbol']))) ?>">Back to Search</a>
-        </div>
+        <section>
+            <h2>Forecast detail</h2>
+            <?php if (graph_asset_exists(db(), (int) $graph['id'], 'detail')): ?>
+                <img src="<?= h(app_url('/asset.php?graph=' . (int) $graph['id'] . '&kind=detail')) ?>" alt="Forecast detail graph for <?= h($graph['ticker_symbol']) ?>">
+            <?php else: ?>
+                <p>Detail graph asset is not available yet.</p>
+            <?php endif; ?>
+        </section>
+
+        <form method="post" action="<?= h(app_url('/request_prediction.php')) ?>">
+            <input type="hidden" name="ticker" value="<?= h($graph['ticker_symbol']) ?>">
+            <p><button type="submit">Create New Graph</button></p>
+        </form>
+        <p><a href="<?= h(app_url('/search.php?ticker=' . urlencode((string) $graph['ticker_symbol']))) ?>">Back to Search</a></p>
     </section>
 <?php endif; ?>
 
-<section class="content-grid two-up">
-    <article class="panel">
-        <div class="panel-heading">
-            <div>
-                <p class="eyebrow">Ticker History</p>
-                <h2>Previous saved graphs</h2>
-            </div>
-        </div>
-        <?php if ($tickerGraphs === []): ?>
-            <p class="empty-state">There are no saved graphs for this ticker yet.</p>
-        <?php else: ?>
-            <div class="stack-list">
-                <?php foreach ($tickerGraphs as $item): ?>
-                    <a class="list-card" href="<?= h(app_url('/view.php?graph=' . (int) $item['id'])) ?>">
-                        <div>
-                            <strong><?= h($item['title']) ?></strong>
-                            <span><?= h($item['ticker_symbol']) ?></span>
-                        </div>
-                        <small><?= h((string) $item['created_at']) ?></small>
+<section>
+    <h2>Previous saved graphs</h2>
+    <?php if ($tickerGraphs === []): ?>
+        <p>There are no saved graphs for this ticker yet.</p>
+    <?php else: ?>
+        <ul>
+            <?php foreach ($tickerGraphs as $item): ?>
+                <li>
+                    <a href="<?= h(app_url('/view.php?graph=' . (int) $item['id'])) ?>">
+                        <?= h($item['title']) ?> - <?= h($item['ticker_symbol']) ?> - <?= h((string) $item['created_at']) ?>
                     </a>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-    </article>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    <?php endif; ?>
+</section>
 
-    <article class="panel">
-        <div class="panel-heading">
-            <div>
-                <p class="eyebrow">Ticker Queue</p>
-                <h2>Recent jobs for this symbol</h2>
-            </div>
-        </div>
-        <?php if ($tickerJobs === []): ?>
-            <p class="empty-state">No jobs have been recorded for this ticker yet.</p>
-        <?php else: ?>
-            <div class="stack-list">
-                <?php foreach ($tickerJobs as $item): ?>
-                    <a class="list-card" href="<?= h(app_url('/view.php?job=' . (int) $item['id'])) ?>">
-                        <div>
-                            <strong>Job #<?= h((string) $item['id']) ?></strong>
-                            <span><?= h($item['status']) ?></span>
-                        </div>
-                        <small><?= h((string) $item['created_at']) ?></small>
+<section>
+    <h2>Recent jobs for this ticker</h2>
+    <?php if ($tickerJobs === []): ?>
+        <p>No jobs have been recorded for this ticker yet.</p>
+    <?php else: ?>
+        <ul>
+            <?php foreach ($tickerJobs as $item): ?>
+                <li>
+                    <a href="<?= h(app_url('/view.php?job=' . (int) $item['id'])) ?>">
+                        Job #<?= h((string) $item['id']) ?> - <?= h($item['status']) ?> - <?= h((string) $item['created_at']) ?>
                     </a>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-    </article>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    <?php endif; ?>
 </section>
 
 <?php render_layout_end(); ?>

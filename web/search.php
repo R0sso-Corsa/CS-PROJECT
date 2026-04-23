@@ -24,188 +24,139 @@ if ($pdo instanceof PDO) {
 render_layout_start('Search', 'search');
 ?>
 
+<h1>Search ticker history</h1>
+<p>Search a symbol, inspect any stored history, and then choose an older saved graph or queue a new one.</p>
+
 <?php if ($dbError !== null): ?>
-    <div class="flash flash-warning">
-        You are signed in, but the database is not connected yet. Search history, queueing, and saved graphs are disabled until the database is configured.
-    </div>
+    <section>
+        <p><strong>Warning:</strong> You are signed in, but the database is not connected yet. Search history, queueing, and saved graphs are disabled until the database is configured.</p>
+    </section>
 <?php endif; ?>
 
-<section class="panel search-hero">
-    <div class="panel-heading">
-        <div>
-            <p class="eyebrow">Ticker Search</p>
-            <h1>Search a market symbol, then choose an older graph or queue a new one.</h1>
-        </div>
-    </div>
-
-    <form class="search-form" method="get">
-        <label class="grow-field">
-            <span>Ticker</span>
-            <input
-                type="text"
-                name="ticker"
-                value="<?= h($query) ?>"
-                placeholder="BTC-USD, ETH-USD, AAPL, TSLA"
-                required
-            >
-        </label>
-        <button class="button button-primary" type="submit">Search</button>
+<section>
+    <h2>Search form</h2>
+    <form method="get">
+        <p>
+            <label>
+                Ticker<br>
+                <input
+                    type="text"
+                    name="ticker"
+                    value="<?= h($query) ?>"
+                    placeholder="BTC-USD, ETH-USD, AAPL, TSLA"
+                    required
+                >
+            </label>
+            <button type="submit">Search</button>
+        </p>
     </form>
-
-    <div class="ticker-chip-row">
-        <button class="chip-button" data-fill-ticker="BTC-USD" type="button">BTC-USD</button>
-        <button class="chip-button" data-fill-ticker="ETH-USD" type="button">ETH-USD</button>
-        <button class="chip-button" data-fill-ticker="SOL-USD" type="button">SOL-USD</button>
-        <button class="chip-button" data-fill-ticker="AAPL" type="button">AAPL</button>
-        <button class="chip-button" data-fill-ticker="TSLA" type="button">TSLA</button>
-    </div>
+    <p>Quick fill:</p>
+    <p>
+        <button data-fill-ticker="BTC-USD" type="button">BTC-USD</button>
+        <button data-fill-ticker="ETH-USD" type="button">ETH-USD</button>
+        <button data-fill-ticker="SOL-USD" type="button">SOL-USD</button>
+        <button data-fill-ticker="AAPL" type="button">AAPL</button>
+        <button data-fill-ticker="TSLA" type="button">TSLA</button>
+    </p>
 </section>
 
 <?php if ($query !== ''): ?>
-    <section class="content-grid two-up">
-        <article class="panel">
-            <div class="panel-heading">
-                <div>
-                    <p class="eyebrow">Create New</p>
-                    <h2>Queue a fresh forecast for <?= h($query) ?></h2>
-                </div>
-            </div>
-            <p class="support-copy">
-                Submitting a new request will add the ticker to the queue if another training run is active. The background worker only starts one remote training job at a time.
-            </p>
-            <?php if ($pdo instanceof PDO): ?>
-                <form class="queue-form" method="post" action="<?= h(app_url('/request_prediction.php')) ?>">
-                    <input type="hidden" name="ticker" value="<?= h($query) ?>">
-                    <button class="button button-primary" type="submit">Create New Graph</button>
-                </form>
-            <?php else: ?>
-                <p class="empty-state">Queueing is disabled until the database connection is working.</p>
-            <?php endif; ?>
-        </article>
-
-        <article class="panel">
-            <div class="panel-heading">
-                <div>
-                    <p class="eyebrow">Ticker Summary</p>
-                    <h2>Matches for <?= h($query) ?></h2>
-                </div>
-            </div>
-            <?php if ($matches === []): ?>
-                <p class="empty-state">This ticker is not in the database yet, but you can still queue a new forecast for it.</p>
-            <?php else: ?>
-                <div class="stack-list">
-                    <?php foreach ($matches as $match): ?>
-                        <div class="list-card list-card-static">
-                            <div>
-                                <strong><?= h($match['symbol']) ?></strong>
-                                <span><?= h((string) $match['graph_count']) ?> saved graphs</span>
-                            </div>
-                            <small><?= h(isset($match['latest_graph_at']) ? (string) $match['latest_graph_at'] : 'No graph imported yet') ?></small>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </article>
+    <section>
+        <h2>Queue a fresh forecast for <?= h($query) ?></h2>
+        <p>Submitting a new request adds the ticker to the queue if another training run is already active.</p>
+        <?php if ($pdo instanceof PDO): ?>
+            <form method="post" action="<?= h(app_url('/request_prediction.php')) ?>">
+                <input type="hidden" name="ticker" value="<?= h($query) ?>">
+                <button type="submit">Create New Graph</button>
+            </form>
+        <?php else: ?>
+            <p>Queueing is disabled until the database connection is working.</p>
+        <?php endif; ?>
     </section>
 
-    <section class="content-grid two-up">
-        <article class="panel">
-            <div class="panel-heading">
-                <div>
-                    <p class="eyebrow">Previous Graphs</p>
-                    <h2>Open an older saved view</h2>
-                </div>
-            </div>
-            <?php if ($existingGraphs === []): ?>
-                <p class="empty-state">There are no saved graphs for this ticker yet.</p>
-            <?php else: ?>
-                <div class="stack-list">
-                    <?php foreach ($existingGraphs as $graph): ?>
-                        <a class="list-card" href="<?= h(app_url('/view.php?graph=' . (int) $graph['id'])) ?>">
-                            <div>
-                                <strong><?= h($graph['title']) ?></strong>
-                                <span><?= h($graph['ticker_symbol']) ?></span>
-                            </div>
-                            <small><?= h((string) $graph['created_at']) ?></small>
-                        </a>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </article>
+    <section>
+        <h2>Matches for <?= h($query) ?></h2>
+        <?php if ($matches === []): ?>
+            <p>This ticker is not in the database yet, but you can still queue a new forecast for it.</p>
+        <?php else: ?>
+            <ul>
+                <?php foreach ($matches as $match): ?>
+                    <li>
+                        <?= h($match['symbol']) ?> -
+                        <?= h((string) $match['graph_count']) ?> saved graphs -
+                        <?= h(isset($match['latest_graph_at']) ? (string) $match['latest_graph_at'] : 'No graph imported yet') ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    </section>
 
-        <article class="panel">
-            <div class="panel-heading">
-                <div>
-                    <p class="eyebrow">Job History</p>
-                    <h2>Recent queue activity for <?= h($query) ?></h2>
-                </div>
-            </div>
-            <?php if ($jobHistory === []): ?>
-                <p class="empty-state">No jobs have been queued for this ticker yet.</p>
-            <?php else: ?>
-                <div class="stack-list">
-                    <?php foreach ($jobHistory as $job): ?>
-                        <a class="list-card" href="<?= h(app_url('/view.php?job=' . (int) $job['id'])) ?>">
-                            <div>
-                                <strong>Job #<?= h((string) $job['id']) ?></strong>
-                                <span><?= h($job['status']) ?></span>
-                            </div>
-                            <small><?= h((string) $job['created_at']) ?></small>
+    <section>
+        <h2>Previous graphs</h2>
+        <?php if ($existingGraphs === []): ?>
+            <p>There are no saved graphs for this ticker yet.</p>
+        <?php else: ?>
+            <ul>
+                <?php foreach ($existingGraphs as $graph): ?>
+                    <li>
+                        <a href="<?= h(app_url('/view.php?graph=' . (int) $graph['id'])) ?>">
+                            <?= h($graph['title']) ?> - <?= h($graph['ticker_symbol']) ?> - <?= h((string) $graph['created_at']) ?>
                         </a>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </article>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    </section>
+
+    <section>
+        <h2>Job history for <?= h($query) ?></h2>
+        <?php if ($jobHistory === []): ?>
+            <p>No jobs have been queued for this ticker yet.</p>
+        <?php else: ?>
+            <ul>
+                <?php foreach ($jobHistory as $job): ?>
+                    <li>
+                        <a href="<?= h(app_url('/view.php?job=' . (int) $job['id'])) ?>">
+                            Job #<?= h((string) $job['id']) ?> - <?= h($job['status']) ?> - <?= h((string) $job['created_at']) ?>
+                        </a>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
     </section>
 <?php else: ?>
-    <section class="content-grid two-up">
-        <article class="panel">
-            <div class="panel-heading">
-                <div>
-                    <p class="eyebrow">Browse</p>
-                    <h2>Recently imported graphs</h2>
-                </div>
-            </div>
-            <?php if ($recentGraphs === []): ?>
-                <p class="empty-state">No graphs are stored yet. Queue your first run from the search box above.</p>
-            <?php else: ?>
-                <div class="stack-list">
-                    <?php foreach ($recentGraphs as $graph): ?>
-                        <a class="list-card" href="<?= h(app_url('/view.php?graph=' . (int) $graph['id'])) ?>">
-                            <div>
-                                <strong><?= h($graph['ticker_symbol']) ?></strong>
-                                <span><?= h($graph['title']) ?></span>
-                            </div>
-                            <small><?= h((string) $graph['created_at']) ?></small>
+    <section>
+        <h2>Recently imported graphs</h2>
+        <?php if ($recentGraphs === []): ?>
+            <p>No graphs are stored yet. Queue your first run from the search box above.</p>
+        <?php else: ?>
+            <ul>
+                <?php foreach ($recentGraphs as $graph): ?>
+                    <li>
+                        <a href="<?= h(app_url('/view.php?graph=' . (int) $graph['id'])) ?>">
+                            <?= h($graph['ticker_symbol']) ?> - <?= h($graph['title']) ?> - <?= h((string) $graph['created_at']) ?>
                         </a>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </article>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    </section>
 
-        <article class="panel">
-            <div class="panel-heading">
-                <div>
-                    <p class="eyebrow">Queue</p>
-                    <h2>Current job list</h2>
-                </div>
-            </div>
-            <?php if ($recentJobs === []): ?>
-                <p class="empty-state">Nothing is in the queue yet.</p>
-            <?php else: ?>
-                <div class="stack-list">
-                    <?php foreach ($recentJobs as $job): ?>
-                        <a class="list-card" href="<?= h(app_url('/view.php?job=' . (int) $job['id'])) ?>">
-                            <div>
-                                <strong><?= h($job['ticker_symbol']) ?></strong>
-                                <span><?= h($job['status']) ?></span>
-                            </div>
-                            <small><?= h((string) $job['created_at']) ?></small>
+    <section>
+        <h2>Current job list</h2>
+        <?php if ($recentJobs === []): ?>
+            <p>Nothing is in the queue yet.</p>
+        <?php else: ?>
+            <ul>
+                <?php foreach ($recentJobs as $job): ?>
+                    <li>
+                        <a href="<?= h(app_url('/view.php?job=' . (int) $job['id'])) ?>">
+                            <?= h($job['ticker_symbol']) ?> - <?= h($job['status']) ?> - <?= h((string) $job['created_at']) ?>
                         </a>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </article>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
     </section>
 <?php endif; ?>
 

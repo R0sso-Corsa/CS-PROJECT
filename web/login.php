@@ -20,37 +20,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 render_layout_start('Log In', 'login');
 ?>
 
-<section class="auth-shell">
-    <article class="auth-panel">
-        <p class="eyebrow">Account Access</p>
-        <h1>Log in to search, queue, and review forecasts.</h1>
-        <p class="support-copy">
-            Use a real database account if you have seeded one, or use the demo fallback while you are still wiring the rest of the stack.
-        </p>
+<h1>Log in</h1>
+<p>Use a real database account if one exists, or use the demo fallback while the rest of the stack is still being configured.</p>
 
-        <?php if ($error !== null): ?>
-            <div class="flash flash-danger"><?= h($error) ?></div>
-        <?php endif; ?>
+<?php if ($error !== null): ?>
+    <section>
+        <p><strong>Error:</strong> <?= h($error) ?></p>
+    </section>
+<?php endif; ?>
 
-        <form class="auth-form" method="post">
-            <label>
-                <span>Username</span>
-                <input type="text" name="username" placeholder="demo" required>
-            </label>
-            <label>
-                <span>Password</span>
-                <input type="password" name="password" placeholder="demo123" required>
-            </label>
-            <div class="auth-links auth-links--inline">
-                <button class="button button-primary" type="submit">Log In</button>
-                <a class="button button-secondary" href="<?= h(app_url('/register.php')) ?>">Create Account</a>
-            </div>
-        </form>
+<form method="post">
+    <p>
+        <label>
+            Username<br>
+            <input type="text" name="username" placeholder="demo" required>
+        </label>
+    </p>
+    <p>
+        <label>
+            Password<br>
+            <input type="password" name="password" placeholder="demo123" required>
+        </label>
+    </p>
+    <p>
+        <button type="submit">Log In</button>
+        <a href="<?= h(app_url('/register.php')) ?>">Create Account</a>
+    </p>
+</form>
 
-        <div class="auth-hint">
-            <strong>Demo fallback:</strong> <?= h(DEMO_USERNAME) ?> / <?= h(DEMO_PASSWORD) ?>
-        </div>
-    </article>
-</section>
+<p><strong>Demo fallback:</strong> <?= h(DEMO_USERNAME) ?> / <?= h(DEMO_PASSWORD) ?></p>
 
 <?php render_layout_end(); ?>

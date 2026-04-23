@@ -23,134 +23,90 @@ if ($pdo instanceof PDO) {
 render_layout_start('Home', 'home');
 ?>
 
+<h1>Forecast queue and graph archive</h1>
+<p>
+    This site lets a user log in, search for a ticker, queue a new training run, and reopen older saved graphs.
+    PHP handles the web flow, MySQL stores the records, and the queue worker is designed to start one remote training job at a time.
+</p>
+
 <?php if ($dbError !== null): ?>
-    <div class="flash flash-warning">
-        The website loaded, but the database is not connected yet. You can still test the demo login and page flow, but queueing forecasts and loading saved graphs will not work until the database is configured.
-    </div>
+    <section>
+        <p>
+            <strong>Warning:</strong>
+            The website loaded, but the database is not connected yet. You can still test the login and page flow,
+            but queueing forecasts and loading saved graphs will not work until the database is configured.
+        </p>
+    </section>
 <?php endif; ?>
 
-<section class="hero-panel">
-    <div>
-        <p class="eyebrow">Forecast Queue + Graph Archive</p>
-        <h1>Queue training requests, save finished graphs, and keep each ticker’s history in one place.</h1>
-        <p class="hero-copy">
-            This starter site is designed for your Linux XAMPP deployment. PHP handles the login flow, stores graph records in MySQL,
-            and queues forecast jobs so only one remote training run is active at a time.
-        </p>
-        <div class="hero-actions">
-            <a class="button button-primary" href="<?= h(app_url('/search.php')) ?>">Open Search Page</a>
-            <a class="button button-secondary" href="<?= h(app_url('/login.php')) ?>">Log In</a>
-            <a class="button button-secondary" href="<?= h(app_url('/register.php')) ?>">Create Account</a>
-        </div>
-    </div>
-    <div class="hero-grid">
-        <article class="metric-card">
-            <span>Queued Jobs</span>
-            <strong><?= h((string) $stats['queued_jobs']) ?></strong>
-        </article>
-        <article class="metric-card">
-            <span>Running Jobs</span>
-            <strong><?= h((string) $stats['running_jobs']) ?></strong>
-        </article>
-        <article class="metric-card">
-            <span>Saved Graphs</span>
-            <strong><?= h((string) $stats['saved_graphs']) ?></strong>
-        </article>
-        <article class="metric-card">
-            <span>Tracked Tickers</span>
-            <strong><?= h((string) $stats['tracked_tickers']) ?></strong>
-        </article>
-    </div>
+<section>
+    <h2>Quick links</h2>
+    <p>
+        <a href="<?= h(app_url('/search.php')) ?>">Open Search Page</a> |
+        <a href="<?= h(app_url('/login.php')) ?>">Log In</a> |
+        <a href="<?= h(app_url('/register.php')) ?>">Create Account</a>
+    </p>
 </section>
 
-<section class="content-grid two-up">
-    <article class="panel">
-        <div class="panel-heading">
-            <div>
-                <p class="eyebrow">Workflow</p>
-                <h2>How the site behaves</h2>
-            </div>
-        </div>
-        <ol class="step-list">
-            <li>Users log in and search for a ticker.</li>
-            <li>They either open an older saved graph or request a new forecast.</li>
-            <li>New forecast requests are written into the `prediction_jobs` queue table.</li>
-            <li>A background PHP worker sends a single SSH command to this PC to start training.</li>
-            <li>When the run finishes, plots are imported back into the site and stored in the database-backed archive.</li>
-        </ol>
-    </article>
-
-    <article class="panel">
-        <div class="panel-heading">
-            <div>
-                <p class="eyebrow">Demo Access</p>
-                <h2>Quick local login</h2>
-            </div>
-        </div>
-        <p class="support-copy">
-            If you have not created database users yet, you can still test the interface with the demo fallback account below.
-        </p>
-        <dl class="demo-credentials">
-            <div>
-                <dt>Username</dt>
-                <dd><?= h(DEMO_USERNAME) ?></dd>
-            </div>
-            <div>
-                <dt>Password</dt>
-                <dd><?= h(DEMO_PASSWORD) ?></dd>
-            </div>
-        </dl>
-    </article>
+<section>
+    <h2>Current totals</h2>
+    <ul>
+        <li>Queued jobs: <?= h((string) $stats['queued_jobs']) ?></li>
+        <li>Running jobs: <?= h((string) $stats['running_jobs']) ?></li>
+        <li>Saved graphs: <?= h((string) $stats['saved_graphs']) ?></li>
+        <li>Tracked tickers: <?= h((string) $stats['tracked_tickers']) ?></li>
+    </ul>
 </section>
 
-<section class="content-grid two-up">
-    <article class="panel">
-        <div class="panel-heading">
-            <div>
-                <p class="eyebrow">Recent Jobs</p>
-                <h2>Queue activity</h2>
-            </div>
-        </div>
-        <?php if ($recentJobs === []): ?>
-            <p class="empty-state">No jobs have been queued yet.</p>
-        <?php else: ?>
-            <div class="stack-list">
-                <?php foreach ($recentJobs as $job): ?>
-                    <a class="list-card" href="<?= h(app_url('/view.php?job=' . (int) $job['id'])) ?>">
-                        <div>
-                            <strong><?= h($job['ticker_symbol']) ?></strong>
-                            <span><?= h($job['status']) ?></span>
-                        </div>
-                        <small><?= h((string) $job['created_at']) ?></small>
-                    </a>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-    </article>
+<section>
+    <h2>How the site works</h2>
+    <ol>
+        <li>Log in and search for a ticker.</li>
+        <li>Open an older saved graph or request a new forecast.</li>
+        <li>The request is written into the `prediction_jobs` queue table.</li>
+        <li>A PHP worker starts a single remote training run over SSH.</li>
+        <li>When the run finishes, the generated graph files are imported back into the site and stored in the database archive.</li>
+    </ol>
+</section>
 
-    <article class="panel">
-        <div class="panel-heading">
-            <div>
-                <p class="eyebrow">Recent Graphs</p>
-                <h2>Latest saved views</h2>
-            </div>
-        </div>
-        <?php if ($recentGraphs === []): ?>
-            <p class="empty-state">No graph images have been imported yet.</p>
-        <?php else: ?>
-            <div class="stack-list">
-                <?php foreach ($recentGraphs as $graph): ?>
-                    <a class="list-card" href="<?= h(app_url('/view.php?graph=' . (int) $graph['id'])) ?>">
-                        <div>
-                            <strong><?= h($graph['ticker_symbol']) ?></strong>
-                            <span><?= h($graph['title']) ?></span>
-                        </div>
-                        <small><?= h((string) $graph['created_at']) ?></small>
+<section>
+    <h2>Demo account</h2>
+    <p>Username: <?= h(DEMO_USERNAME) ?></p>
+    <p>Password: <?= h(DEMO_PASSWORD) ?></p>
+</section>
+
+<section>
+    <h2>Recent jobs</h2>
+    <?php if ($recentJobs === []): ?>
+        <p>No jobs have been queued yet.</p>
+    <?php else: ?>
+        <ul>
+            <?php foreach ($recentJobs as $job): ?>
+                <li>
+                    <a href="<?= h(app_url('/view.php?job=' . (int) $job['id'])) ?>">
+                        <?= h($job['ticker_symbol']) ?> - <?= h($job['status']) ?> - <?= h((string) $job['created_at']) ?>
                     </a>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-    </article>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    <?php endif; ?>
+</section>
+
+<section>
+    <h2>Recent graphs</h2>
+    <?php if ($recentGraphs === []): ?>
+        <p>No graph images have been imported yet.</p>
+    <?php else: ?>
+        <ul>
+            <?php foreach ($recentGraphs as $graph): ?>
+                <li>
+                    <a href="<?= h(app_url('/view.php?graph=' . (int) $graph['id'])) ?>">
+                        <?= h($graph['ticker_symbol']) ?> - <?= h($graph['title']) ?> - <?= h((string) $graph['created_at']) ?>
+                    </a>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    <?php endif; ?>
 </section>
 
 <?php render_layout_end(); ?>

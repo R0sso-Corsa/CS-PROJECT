@@ -72,98 +72,44 @@ $checks = [
 render_layout_start('Health Check', 'home');
 ?>
 
-<section class="panel">
-    <div class="panel-heading">
-        <div>
-            <p class="eyebrow">Diagnostics</p>
-            <h1>Server health check</h1>
-        </div>
-    </div>
-    <p class="support-copy">
-        Use this page to confirm that the Linux/XAMPP deployment is executing PHP correctly, preserving sessions, writing to the site storage folders, and reaching the configured database.
-    </p>
-</section>
+<h1>Server health check</h1>
+<p>Use this page to confirm that the Linux/XAMPP deployment is executing PHP correctly, preserving sessions, writing to storage, and reaching the configured database.</p>
 
-<section class="content-grid two-up">
-    <article class="panel">
-        <div class="panel-heading">
-            <div>
-                <p class="eyebrow">Core Checks</p>
-                <h2>Application status</h2>
-            </div>
-        </div>
-        <div class="stack-list">
-            <?php foreach ($checks as $check): ?>
-                <div class="list-card list-card-static">
-                    <div>
-                        <strong><?= h($check['label']) ?></strong>
-                        <span><?= h($check['detail']) ?></span>
-                    </div>
-                    <span class="status-pill <?= $check['ok'] ? 'status-completed' : 'status-failed' ?>">
-                        <?= $check['ok'] ? 'ok' : 'failed' ?>
-                    </span>
-                </div>
-            <?php endforeach; ?>
-        </div>
-    </article>
-
-    <article class="panel">
-        <div class="panel-heading">
-            <div>
-                <p class="eyebrow">Request Context</p>
-                <h2>Runtime values</h2>
-            </div>
-        </div>
-        <div class="stack-list">
-            <div class="list-card list-card-static">
-                <div>
-                    <strong>Current URL base</strong>
-                    <span><?= h(app_base_path() === '' ? '/' : app_base_path()) ?></span>
-                </div>
-            </div>
-            <div class="list-card list-card-static">
-                <div>
-                    <strong>Script name</strong>
-                    <span><?= h(isset($_SERVER['SCRIPT_NAME']) ? (string) $_SERVER['SCRIPT_NAME'] : 'unknown') ?></span>
-                </div>
-            </div>
-            <div class="list-card list-card-static">
-                <div>
-                    <strong>Request URI</strong>
-                    <span><?= h(isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : 'unknown') ?></span>
-                </div>
-            </div>
-            <div class="list-card list-card-static">
-                <div>
-                    <strong>Signed-in user</strong>
-                    <span><?= h(isset($user['username']) ? $user['username'] : 'No active session user') ?></span>
-                </div>
-            </div>
-        </div>
-    </article>
-</section>
-
-<section class="panel">
-    <div class="panel-heading">
-        <div>
-            <p class="eyebrow">Filesystem</p>
-            <h2>Storage folder status</h2>
-        </div>
-    </div>
-    <div class="stack-list">
-        <?php foreach ($storageResults as $label => $result): ?>
-            <div class="list-card list-card-static">
-                <div>
-                    <strong><?= h($label) ?></strong>
-                    <span><?= h($result['path']) ?></span>
-                </div>
-                <small>
-                    <?= h($result['exists'] ? 'exists' : 'missing') ?> /
-                    <?= h($result['writable'] ? 'writable' : 'not writable') ?>
-                </small>
-            </div>
+<section>
+    <h2>Application status</h2>
+    <ul>
+        <?php foreach ($checks as $check): ?>
+            <li>
+                <strong><?= h($check['label']) ?></strong>:
+                <?= $check['ok'] ? 'ok' : 'failed' ?> -
+                <?= h($check['detail']) ?>
+            </li>
         <?php endforeach; ?>
-    </div>
+    </ul>
+</section>
+
+<section>
+    <h2>Runtime values</h2>
+    <ul>
+        <li>Current URL base: <?= h(app_base_path() === '' ? '/' : app_base_path()) ?></li>
+        <li>Script name: <?= h(isset($_SERVER['SCRIPT_NAME']) ? (string) $_SERVER['SCRIPT_NAME'] : 'unknown') ?></li>
+        <li>Request URI: <?= h(isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : 'unknown') ?></li>
+        <li>Signed-in user: <?= h(isset($user['username']) ? $user['username'] : 'No active session user') ?></li>
+    </ul>
+</section>
+
+<section>
+    <h2>Storage folder status</h2>
+    <ul>
+        <?php foreach ($storageResults as $label => $result): ?>
+            <li>
+                <strong><?= h($label) ?></strong>:
+                <?= h($result['path']) ?> -
+                <?= h($result['exists'] ? 'exists' : 'missing') ?> /
+                <?= h($result['writable'] ? 'writable' : 'not writable') ?>
+            </li>
+        <?php endforeach; ?>
+    </ul>
 </section>
 
 <?php render_layout_end(); ?>

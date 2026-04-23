@@ -75,44 +75,46 @@ function render_layout_start($title, $active = '')
     <script defer src="<?= h(app_url('/scripts.js')) ?>"></script>
 </head>
 <body>
-<div class="page-shell">
-    <header class="site-header">
-        <a class="brand-mark" href="<?= h(app_url('/index.php')) ?>">
-            <span class="brand-dot"></span>
-            <span>
-                <strong><?= h(APP_NAME) ?></strong>
-                <small>Queued ticker forecasting</small>
-            </span>
-        </a>
-        <nav class="site-nav">
-            <a class="<?= $active === 'home' ? 'active' : '' ?>" href="<?= h(app_url('/index.php')) ?>">Home</a>
-            <a class="<?= $active === 'search' ? 'active' : '' ?>" href="<?= h(app_url('/search.php')) ?>">Search</a>
-            <?php if ($user !== null): ?>
-                <span class="nav-user">Signed in as <?= h($user['username']) ?></span>
-                <a href="<?= h(app_url('/logout.php')) ?>">Log Out</a>
-            <?php else: ?>
-                <a class="<?= $active === 'login' ? 'active' : '' ?>" href="<?= h(app_url('/login.php')) ?>">Log In</a>
-                <a class="<?= $active === 'register' ? 'active' : '' ?>" href="<?= h(app_url('/register.php')) ?>">Create Account</a>
-            <?php endif; ?>
-        </nav>
-    </header>
-    <main class="page-main">
-        <?php if ($flash !== null): ?>
-            <div class="flash flash-<?= h($flash['type']) ?>">
-                <?= h($flash['message']) ?>
-            </div>
+<header>
+    <p><strong><?= h(APP_NAME) ?></strong></p>
+    <p>Queued ticker forecasting website.</p>
+    <nav>
+        <a href="<?= h(app_url('/index.php')) ?>">Home</a>
+        |
+        <a href="<?= h(app_url('/search.php')) ?>">Search</a>
+        |
+        <a href="<?= h(app_url('/healthcheck.php')) ?>">Health Check</a>
+        <?php if ($user !== null): ?>
+            |
+            <span>Signed in as <?= h($user['username']) ?></span>
+            |
+            <a href="<?= h(app_url('/logout.php')) ?>">Log Out</a>
+        <?php else: ?>
+            |
+            <a href="<?= h(app_url('/login.php')) ?>">Log In</a>
+            |
+            <a href="<?= h(app_url('/register.php')) ?>">Create Account</a>
         <?php endif; ?>
+    </nav>
+    <hr>
+</header>
+<main>
+    <?php if ($flash !== null): ?>
+        <section>
+            <p><strong><?= h(ucfirst((string) $flash['type'])) ?>:</strong> <?= h($flash['message']) ?></p>
+        </section>
+    <?php endif; ?>
     <?php
 }
 
 function render_layout_end()
 {
     ?>
-    </main>
-    <footer class="site-footer">
-        <p>Built for a Linux XAMPP deployment with PHP queueing, SSH-triggered training, and database-backed graph history.</p>
-    </footer>
-</div>
+</main>
+<hr>
+<footer>
+    <p>Built for Linux XAMPP deployment with PHP queueing, SSH-triggered training, and database-backed graph history.</p>
+</footer>
 </body>
 </html>
     <?php

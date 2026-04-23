@@ -23,46 +23,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 render_layout_start('Create Account', 'register');
 ?>
 
-<section class="auth-shell">
-    <article class="auth-panel">
-        <p class="eyebrow">New Account</p>
-        <h1>Create an account to queue and review forecasts.</h1>
-        <p class="support-copy">
-            This creates a real user in the site database. Once the account is created, you will be signed in automatically.
-        </p>
+<h1>Create account</h1>
+<p>This creates a real user in the site database and signs you in automatically after success.</p>
 
-        <?php if ($error !== null): ?>
-            <div class="flash flash-danger"><?= h($error) ?></div>
-        <?php endif; ?>
+<?php if ($error !== null): ?>
+    <section>
+        <p><strong>Error:</strong> <?= h($error) ?></p>
+    </section>
+<?php endif; ?>
 
-        <form class="auth-form" method="post">
-            <label>
-                <span>Username</span>
-                <input
-                    type="text"
-                    name="username"
-                    value="<?= h($username) ?>"
-                    placeholder="newuser"
-                    minlength="3"
-                    maxlength="40"
-                    required
-                >
-            </label>
-            <label>
-                <span>Password</span>
-                <input type="password" name="password" placeholder="At least 8 characters" minlength="8" required>
-            </label>
-            <label>
-                <span>Confirm Password</span>
-                <input type="password" name="confirm_password" placeholder="Repeat your password" minlength="8" required>
-            </label>
-            <button class="button button-primary" type="submit">Create Account</button>
-        </form>
+<form method="post">
+    <p>
+        <label>
+            Username<br>
+            <input
+                type="text"
+                name="username"
+                value="<?= h($username) ?>"
+                placeholder="newuser"
+                minlength="3"
+                maxlength="40"
+                required
+            >
+        </label>
+    </p>
+    <p>
+        <label>
+            Password<br>
+            <input type="password" name="password" placeholder="At least 8 characters" minlength="8" required>
+        </label>
+    </p>
+    <p>
+        <label>
+            Confirm password<br>
+            <input type="password" name="confirm_password" placeholder="Repeat your password" minlength="8" required>
+        </label>
+    </p>
+    <p>
+        <button type="submit">Create Account</button>
+    </p>
+</form>
 
-        <div class="auth-links">
-            <a class="button button-secondary" href="<?= h(app_url('/login.php')) ?>">Back to Log In</a>
-        </div>
-    </article>
-</section>
+<p><a href="<?= h(app_url('/login.php')) ?>">Back to Log In</a></p>
 
 <?php render_layout_end(); ?>
