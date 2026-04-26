@@ -21,6 +21,16 @@ function normalise_ticker($ticker)
     return $ticker;
 }
 
+function normalise_search_query($query)
+{
+    $query = trim((string) $query);
+    $query = preg_replace('/\s+/', ' ', $query);
+    if ($query === null) {
+        $query = '';
+    }
+    return $query;
+}
+
 function ticker_slug($ticker)
 {
     $slug = strtolower($ticker);
@@ -73,23 +83,82 @@ function fetch_recent_graphs($pdo, $limit = 8)
 
 function search_ticker_history($pdo, $query)
 {
-    $query = normalise_ticker($query);
+    $query = normalise_search_query($query);
     if ($query === '') {
         return [];
     }
 
-    $stmt = $pdo->prepare(
+    $terms = preg_split('/\s+/', strtolower($query));
+    if (!is_array($terms)) {
+        $terms = [];
+    }
+
+    $terms = array_values(array_filter(array_unique($terms), static function ($term) {
+        return $term !== '';
+    }));
+
+    if ($terms === []) {
+        return [];
+    }
+
+    $whereParts = [];
+    $params = [];
+
+    foreach ($terms as $index => $term) {
+        $textKey = 'text_' . $index;
+        $symbolKey = 'symbol_' . $index;
+        $slugKey = 'slug_' . $index;
+
+        $params[$textKey] = '%' . $term . '%';
+        $params[$symbolKey] = '%' . normalise_ticker($term) . '%';
+        $params[$slugKey] = '%' . ticker_slug($term) . '%';
+
+        $whereParts[] =
+            "(t.symbol LIKE :$symbolKey
+              OR t.slug LIKE :$slugKey
+              OR t.display_name LIKE :$textKey
+              OR g.title LIKE :$textKey
+              OR g.summary_text LIKE :$textKey
+              OR j.requested_ticker LIKE :$symbolKey)";
+    }
+
+    $sql =
         "SELECT
              t.*,
-             COUNT(g.id) AS graph_count,
-             MAX(g.created_at) AS latest_graph_at
+             COUNT(DISTINCT g.id) AS graph_count,
+             MAX(g.created_at) AS latest_graph_at,
+             COUNT(DISTINCT j.id) AS job_count,
+             MAX(j.created_at) AS latest_job_at
          FROM tickers t
          LEFT JOIN saved_graphs g ON g.ticker_id = t.id
-         WHERE t.symbol LIKE :query
+         LEFT JOIN prediction_jobs j ON j.ticker_id = t.id
+         WHERE " . implode(' AND ', $whereParts) . "
          GROUP BY t.id
-         ORDER BY t.symbol ASC"
-    );
-    $stmt->execute(['query' => '%' . $query . '%']);
+         ORDER BY
+             CASE
+                 WHEN t.symbol = :exact_symbol THEN 0
+                 WHEN t.symbol LIKE :starts_symbol THEN 1
+                 WHEN t.display_name LIKE :starts_text THEN 2
+                 WHEN t.slug LIKE :starts_slug THEN 3
+                 ELSE 4
+             END,
+             graph_count DESC,
+             job_count DESC,
+             t.symbol ASC
+         LIMIT :limit";
+
+    $stmt = $pdo->prepare($sql);
+
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
+
+    $stmt->bindValue('exact_symbol', normalise_ticker($query));
+    $stmt->bindValue('starts_symbol', normalise_ticker($query) . '%');
+    $stmt->bindValue('starts_text', $query . '%');
+    $stmt->bindValue('starts_slug', ticker_slug($query) . '%');
+    $stmt->bindValue('limit', 25, PDO::PARAM_INT);
+    $stmt->execute();
     return $stmt->fetchAll();
 }
 
