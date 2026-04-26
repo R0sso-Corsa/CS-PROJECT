@@ -164,6 +164,8 @@ function search_ticker_history($pdo, $query)
 
 function search_yfinance_tickers($query, $limit = 10, &$error = null)
 {
+    ensure_storage_directories();
+
     $query = normalise_search_query($query);
     if ($query === '') {
         return [];
@@ -232,10 +234,31 @@ function search_yfinance_tickers($query, $limit = 10, &$error = null)
     return $results;
 }
 
-function log_yfinance_search_debug($query, $command, $exitCode, $raw, $resultCount = null)
+function log_yfinance_search_marker($message, $context = [])
 {
     if (!is_dir(LOG_ROOT)) {
         @mkdir(LOG_ROOT, 0775, true);
+    }
+
+    $line = '[' . date(DATE_ATOM) . '] ' . $message;
+    if ($context !== []) {
+        $line .= ' ' . json_encode($context, JSON_UNESCAPED_SLASHES);
+    }
+    $line .= "\n";
+
+    $logPath = LOG_ROOT . '/yfinance-search.log';
+    $written = @file_put_contents($logPath, $line, FILE_APPEND);
+    if ($written === false) {
+        error_log('Unable to write yfinance marker log to ' . $logPath);
+    }
+}
+
+function log_yfinance_search_debug($query, $command, $exitCode, $raw, $resultCount = null)
+{
+    foreach ([WEB_STORAGE_ROOT, LOG_ROOT] as $path) {
+        if (!is_dir($path)) {
+            @mkdir($path, 0775, true);
+        }
     }
 
     $message = '[' . date(DATE_ATOM) . '] yfinance search' . "\n";
@@ -247,7 +270,11 @@ function log_yfinance_search_debug($query, $command, $exitCode, $raw, $resultCou
     }
     $message .= 'raw=' . ($raw !== '' ? $raw : '[empty]') . "\n\n";
 
-    @file_put_contents(LOG_ROOT . '/yfinance-search.log', $message, FILE_APPEND);
+    $logPath = LOG_ROOT . '/yfinance-search.log';
+    $written = @file_put_contents($logPath, $message, FILE_APPEND);
+    if ($written === false) {
+        error_log('Unable to write yfinance search log to ' . $logPath);
+    }
 }
 
 function fetch_graphs_for_ticker($pdo, $ticker, $limit = 12)

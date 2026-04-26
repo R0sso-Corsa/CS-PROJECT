@@ -55,7 +55,13 @@ $yfinanceMatches = [];
 $yfinanceError = null;
 
 if ($query !== '') {
+    log_yfinance_search_marker('search page starting yfinance lookup', ['query' => $query]);
     $yfinanceMatches = search_yfinance_tickers($query, 10, $yfinanceError);
+    log_yfinance_search_marker('search page finished yfinance lookup', [
+        'query' => $query,
+        'count' => count($yfinanceMatches),
+        'error' => $yfinanceError,
+    ]);
 }
 
 if ($pdo instanceof PDO) {
