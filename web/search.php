@@ -40,6 +40,27 @@ function can_queue_symbol_from_query($query)
         && (preg_match('/[.\-=]/', $symbol) === 1 || strlen($symbol) <= 4);
 }
 
+function find_exact_yfinance_symbol($query, $yfinanceMatches)
+{
+    $symbol = normalise_ticker($query);
+    if ($symbol === '') {
+        return null;
+    }
+
+    foreach ($yfinanceMatches as $match) {
+        if (!is_array($match) || empty($match['symbol'])) {
+            continue;
+        }
+
+        $matchedSymbol = normalise_ticker((string) $match['symbol']);
+        if ($matchedSymbol === $symbol) {
+            return $matchedSymbol;
+        }
+    }
+
+    return null;
+}
+
 $dbError = null;
 $pdo = db_optional($dbError);
 $rawQuery = isset($_GET['ticker']) ? (string) $_GET['ticker'] : '';
@@ -73,6 +94,8 @@ if ($pdo instanceof PDO) {
         $queueTicker = $selectedTicker;
     } elseif (can_queue_symbol_from_query($query)) {
         $queueTicker = normalise_ticker($query);
+    } else {
+        $queueTicker = find_exact_yfinance_symbol($query, $yfinanceMatches);
     }
     $recentGraphs = $query === '' ? fetch_recent_graphs($pdo, 10) : [];
     $recentJobs = fetch_recent_jobs($pdo, 8);
@@ -162,6 +185,7 @@ render_layout_start('Search', 'search');
             <ul>
                 <?php foreach ($yfinanceMatches as $result): ?>
                     <li>
+                        <?php $resultSymbol = normalise_ticker((string) $result['symbol']); ?>
                         <a href="<?= h(app_url('/search.php?ticker=' . urlencode((string) $result['symbol']))) ?>">
                             <?= h((string) $result['symbol']) ?>
                         </a>
@@ -174,6 +198,12 @@ render_layout_start('Search', 'search');
                         <?php if (!empty($result['type'])): ?>
                             -
                             <?= h((string) $result['type']) ?>
+                        <?php endif; ?>
+                        <?php if ($pdo instanceof PDO && $resultSymbol !== ''): ?>
+                            <form method="post" action="<?= h(app_url('/request_prediction.php')) ?>">
+                                <input type="hidden" name="ticker" value="<?= h($resultSymbol) ?>">
+                                <button type="submit">Create New Graph</button>
+                            </form>
                         <?php endif; ?>
                     </li>
                 <?php endforeach; ?>
