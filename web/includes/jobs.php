@@ -171,19 +171,13 @@ function search_yfinance_tickers($query, $limit = 10, &$error = null)
         return [];
     }
 
-    $script = WEB_ROOT . '/tools/search_yfinance.py';
+    $script = yfinance_search_helper_path();
     if (!is_file($script)) {
         $error = 'The yfinance search helper is missing at ' . $script . '.';
         return [];
     }
 
-    $command = sprintf(
-        '%s %s %s --limit %d',
-        escapeshellarg(YFINANCE_SEARCH_PYTHON),
-        escapeshellarg($script),
-        escapeshellarg($query),
-        (int) $limit
-    );
+    $command = build_yfinance_search_command($query, $limit);
 
     $output = [];
     $exitCode = 0;
@@ -232,6 +226,25 @@ function search_yfinance_tickers($query, $limit = 10, &$error = null)
     }));
     log_yfinance_search_debug($query, $command, $exitCode, $raw, count($results));
     return $results;
+}
+
+function yfinance_search_helper_path()
+{
+    return WEB_ROOT . '/tools/search_yfinance.py';
+}
+
+function build_yfinance_search_command($query, $limit = 10)
+{
+    $prefix = defined('YFINANCE_SEARCH_ENV_PREFIX') ? trim((string) YFINANCE_SEARCH_ENV_PREFIX) : '';
+    $command = sprintf(
+        '%s %s %s --limit %d',
+        escapeshellarg(YFINANCE_SEARCH_PYTHON),
+        escapeshellarg(yfinance_search_helper_path()),
+        escapeshellarg(normalise_search_query($query)),
+        (int) $limit
+    );
+
+    return $prefix !== '' ? $prefix . ' ' . $command : $command;
 }
 
 function log_yfinance_search_marker($message, $context = [])

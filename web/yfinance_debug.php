@@ -5,14 +5,8 @@ require_once __DIR__ . '/includes/bootstrap.php';
 require_login();
 
 $query = isset($_GET['ticker']) ? normalise_search_query((string) $_GET['ticker']) : 'tesla';
-$script = WEB_ROOT . '/tools/search_yfinance.py';
-$command = sprintf(
-    '%s %s %s --limit %d',
-    escapeshellarg(YFINANCE_SEARCH_PYTHON),
-    escapeshellarg($script),
-    escapeshellarg($query),
-    5
-);
+$script = yfinance_search_helper_path();
+$command = build_yfinance_search_command($query, 5);
 
 $output = [];
 $exitCode = 0;
@@ -67,6 +61,8 @@ render_layout_start('Yahoo Finance Debug', 'search');
         <dd><?= is_file($script) ? 'yes' : 'no' ?></dd>
         <dt>Python setting</dt>
         <dd><?= h(YFINANCE_SEARCH_PYTHON) ?></dd>
+        <dt>Environment prefix</dt>
+        <dd><?= h(defined('YFINANCE_SEARCH_ENV_PREFIX') ? YFINANCE_SEARCH_ENV_PREFIX : '') ?></dd>
         <dt>exec available</dt>
         <dd><?= $canExec ? 'yes' : 'no' ?></dd>
         <dt>Log path</dt>

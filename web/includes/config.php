@@ -28,6 +28,7 @@ const REMOTE_DEFAULT_FUTURE_DAYS = 30;
 const REMOTE_DEFAULT_MC_RUNS = 100;
 const PHP_CLI_BINARY = '/opt/lampp/bin/php';
 const YFINANCE_SEARCH_PYTHON = 'python3';
+const YFINANCE_SEARCH_ENV_PREFIX = 'env -u LD_LIBRARY_PATH';
 
 define('WEB_ROOT', dirname(__DIR__));
 define('WEB_STORAGE_ROOT', WEB_ROOT . '/storage');
