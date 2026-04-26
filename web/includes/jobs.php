@@ -41,6 +41,27 @@ function ticker_slug($ticker)
     return trim($slug, '-') ?: 'ticker';
 }
 
+function unique_ticker_slug($pdo, $ticker)
+{
+    $base = ticker_slug($ticker);
+    $slug = $base;
+    $attempt = 1;
+
+    while (true) {
+        $stmt = $pdo->prepare('SELECT symbol FROM tickers WHERE slug = :slug LIMIT 1');
+        $stmt->execute(['slug' => $slug]);
+        $row = $stmt->fetch();
+
+        if (!is_array($row) || (isset($row['symbol']) && (string) $row['symbol'] === normalise_ticker($ticker))) {
+            return $slug;
+        }
+
+        $suffix = $attempt === 1 ? substr(sha1(normalise_ticker($ticker)), 0, 8) : (string) ($attempt + 1);
+        $slug = substr($base, 0, max(1, 39 - strlen($suffix))) . '-' . $suffix;
+        $attempt++;
+    }
+}
+
 function fetch_dashboard_stats($pdo)
 {
     return [
@@ -340,14 +361,14 @@ function get_or_create_ticker($pdo, $ticker)
     );
     $insert->execute([
         'symbol' => $ticker,
-        'slug' => ticker_slug($ticker),
+        'slug' => unique_ticker_slug($pdo, $ticker),
         'display_name' => $ticker,
     ]);
 
     return [
         'id' => (int) $pdo->lastInsertId(),
         'symbol' => $ticker,
-        'slug' => ticker_slug($ticker),
+        'slug' => unique_ticker_slug($pdo, $ticker),
         'display_name' => $ticker,
     ];
 }

@@ -23,12 +23,24 @@ if (!$pdo instanceof PDO) {
 
 $user = current_user();
 $userId = isset($user['id']) && is_int($user['id']) ? $user['id'] : null;
-$jobId = enqueue_prediction_job($pdo, $userId, $ticker);
-spawn_queue_worker();
 
-set_flash(
-    'Forecast request for ' . $ticker . ' added to the queue. If another run is active, this one will wait its turn.',
-    'success'
-);
+try {
+    $jobId = enqueue_prediction_job($pdo, $userId, $ticker);
+    spawn_queue_worker();
 
-redirect_to('/view.php?job=' . $jobId);
+    set_flash(
+        'Forecast request for ' . $ticker . ' added to the queue. If another run is active, this one will wait its turn.',
+        'success'
+    );
+
+    redirect_to('/view.php?job=' . $jobId);
+} catch (Throwable $exception) {
+    error_log('Forecast request failed for ' . $ticker . ': ' . $exception->getMessage());
+
+    set_flash(
+        'The forecast request could not be queued. Server detail: ' . $exception->getMessage(),
+        'danger'
+    );
+
+    redirect_to('/search.php?ticker=' . urlencode($ticker));
+}

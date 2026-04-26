@@ -199,7 +199,7 @@ render_layout_start('Search', 'search');
                             -
                             <?= h((string) $result['type']) ?>
                         <?php endif; ?>
-                        <?php if ($pdo instanceof PDO && $resultSymbol !== ''): ?>
+                        <?php if ($pdo instanceof PDO && $resultSymbol !== '' && $resultSymbol !== $queueTicker): ?>
                             <form method="post" action="<?= h(app_url('/request_prediction.php')) ?>">
                                 <input type="hidden" name="ticker" value="<?= h($resultSymbol) ?>">
                                 <button type="submit">Create New Graph</button>
