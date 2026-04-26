@@ -749,7 +749,41 @@ function remote_training_config_issues()
         $issues[] = 'REMOTE_OUTPUT_ROOT is empty.';
     }
 
+    $knownHosts = remote_ssh_known_hosts_path();
+    if ($knownHosts === '') {
+        $issues[] = 'REMOTE_SSH_KNOWN_HOSTS is empty and no default known_hosts path is available.';
+    } elseif (!is_file($knownHosts)) {
+        $issues[] = 'SSH known_hosts file does not exist at ' . $knownHosts . '.';
+    } elseif (!is_readable($knownHosts)) {
+        $issues[] = 'SSH known_hosts file is not readable at ' . $knownHosts . '.';
+    }
+
     return $issues;
+}
+
+function remote_ssh_known_hosts_path()
+{
+    if (defined('REMOTE_SSH_KNOWN_HOSTS') && REMOTE_SSH_KNOWN_HOSTS !== '') {
+        return REMOTE_SSH_KNOWN_HOSTS;
+    }
+
+    return WEB_STORAGE_ROOT . '/ssh/known_hosts';
+}
+
+function build_ssh_common_options()
+{
+    $options = [
+        '-o BatchMode=yes',
+        '-o IdentitiesOnly=yes',
+    ];
+
+    $knownHosts = remote_ssh_known_hosts_path();
+    if ($knownHosts !== '') {
+        $options[] = '-o UserKnownHostsFile=' . escapeshellarg($knownHosts);
+        $options[] = '-o StrictHostKeyChecking=yes';
+    }
+
+    return implode(' ', $options);
 }
 
 function build_ssh_training_command($job)
@@ -758,8 +792,9 @@ function build_ssh_training_command($job)
     $remoteCommand = build_remote_command($job);
 
     return sprintf(
-        'ssh -i %s -p %d %s %s',
+        'ssh -i %s %s -p %d %s %s',
         escapeshellarg(REMOTE_SSH_KEY),
+        build_ssh_common_options(),
         REMOTE_SSH_PORT,
         escapeshellarg($sshTarget),
         escapeshellarg($remoteCommand)
@@ -813,8 +848,9 @@ function scp_remote_file($remotePath, $localPath)
 {
     $scpSource = REMOTE_SSH_USER . '@' . REMOTE_SSH_HOST . ':' . normalise_remote_scp_path($remotePath);
     $command = sprintf(
-        'scp -i %s -P %d %s %s',
+        'scp -i %s %s -P %d %s %s',
         escapeshellarg(REMOTE_SSH_KEY),
+        build_ssh_common_options(),
         REMOTE_SSH_PORT,
         escapeshellarg($scpSource),
         escapeshellarg($localPath)

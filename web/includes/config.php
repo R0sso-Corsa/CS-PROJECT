@@ -16,6 +16,7 @@ const REMOTE_SSH_HOST = 'YOUR_WINDOWS_PC_HOST';
 const REMOTE_SSH_PORT = 22;
 const REMOTE_SSH_USER = 'YOUR_WINDOWS_SSH_USER';
 const REMOTE_SSH_KEY = '/home/your-linux-user/.ssh/id_ed25519';
+const REMOTE_SSH_KNOWN_HOSTS = '';
 
 const REMOTE_REPO_ROOT = 'C:/Users/paron/Desktop/Dev/CS_PROJECT';
 const REMOTE_PYTHON = 'python';

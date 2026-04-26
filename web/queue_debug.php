@@ -44,6 +44,10 @@ $checks = [
         'value' => REMOTE_SSH_KEY,
         'ok' => is_file(REMOTE_SSH_KEY),
     ],
+    'SSH known hosts' => [
+        'value' => remote_ssh_known_hosts_path(),
+        'ok' => is_file(remote_ssh_known_hosts_path()) && is_readable(remote_ssh_known_hosts_path()),
+    ],
 ];
 
 render_layout_start('Queue Debug', 'search');
@@ -90,6 +94,8 @@ render_layout_start('Queue Debug', 'search');
         <dd><?= h((string) REMOTE_SSH_PORT) ?></dd>
         <dt>REMOTE_SSH_USER</dt>
         <dd><?= h(REMOTE_SSH_USER) ?></dd>
+        <dt>SSH known_hosts path</dt>
+        <dd><?= h(remote_ssh_known_hosts_path()) ?></dd>
         <dt>REMOTE_REPO_ROOT</dt>
         <dd><?= h(REMOTE_REPO_ROOT) ?></dd>
         <dt>REMOTE_PYTHON</dt>
