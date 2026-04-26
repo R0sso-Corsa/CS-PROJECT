@@ -472,12 +472,14 @@ function spawn_queue_worker()
         escapeshellarg(QUEUE_WORKER_SCRIPT),
         escapeshellarg(QUEUE_WORKER_LOG)
     );
+    log_queue_worker('Spawning queue worker.', ['command' => $command]);
     @exec($command);
 }
 
 function process_prediction_queue($pdo)
 {
     ensure_storage_directories();
+    log_queue_worker('Queue worker started.');
 
     $lockHandle = fopen(QUEUE_WORKER_LOCK, 'c+');
     if ($lockHandle === false) {
@@ -485,6 +487,7 @@ function process_prediction_queue($pdo)
     }
 
     if (!flock($lockHandle, LOCK_EX | LOCK_NB)) {
+        log_queue_worker('Another queue worker already holds the lock; exiting.');
         fclose($lockHandle);
         return;
     }
@@ -497,18 +500,37 @@ function process_prediction_queue($pdo)
             }
 
             try {
+                log_queue_worker('Claimed job.', ['job_id' => (int) $job['id'], 'ticker' => (string) $job['requested_ticker']]);
                 $manifest = run_remote_training_job($job);
                 $imports = import_remote_manifest($manifest, $job);
                 $graphId = save_graph_from_job($pdo, $job, $manifest, $imports);
                 mark_job_completed($pdo, (int) $job['id'], $graphId, $manifest);
-            } catch (Exception $error) {
+                log_queue_worker('Completed job.', ['job_id' => (int) $job['id'], 'graph_id' => $graphId]);
+            } catch (Throwable $error) {
                 mark_job_failed($pdo, (int) $job['id'], $error->getMessage());
+                log_queue_worker('Failed job.', ['job_id' => (int) $job['id'], 'error' => $error->getMessage()]);
             }
         }
     } finally {
         flock($lockHandle, LOCK_UN);
         fclose($lockHandle);
+        log_queue_worker('Queue worker finished.');
     }
+}
+
+function log_queue_worker($message, $context = [])
+{
+    if (!is_dir(LOG_ROOT)) {
+        @mkdir(LOG_ROOT, 0775, true);
+    }
+
+    $line = '[' . date(DATE_ATOM) . '] ' . $message;
+    if ($context !== []) {
+        $line .= ' ' . json_encode($context, JSON_UNESCAPED_SLASHES);
+    }
+    $line .= "\n";
+
+    @file_put_contents(QUEUE_WORKER_LOG, $line, FILE_APPEND);
 }
 
 function claim_next_job($pdo)
@@ -623,17 +645,62 @@ function build_remote_command($job)
         '"';
 }
 
-function run_remote_training_job($job)
+function remote_training_config_issues()
+{
+    $issues = [];
+
+    if (REMOTE_SSH_HOST === '' || strpos(REMOTE_SSH_HOST, 'YOUR_') !== false) {
+        $issues[] = 'REMOTE_SSH_HOST still needs the Windows PC host/IP.';
+    }
+
+    if (REMOTE_SSH_USER === '' || strpos(REMOTE_SSH_USER, 'YOUR_') !== false) {
+        $issues[] = 'REMOTE_SSH_USER still needs the Windows SSH username.';
+    }
+
+    if (REMOTE_SSH_KEY === '' || strpos(REMOTE_SSH_KEY, 'your-linux-user') !== false) {
+        $issues[] = 'REMOTE_SSH_KEY still needs the real Linux private key path.';
+    } elseif (!is_file(REMOTE_SSH_KEY)) {
+        $issues[] = 'REMOTE_SSH_KEY does not exist at ' . REMOTE_SSH_KEY . '.';
+    }
+
+    if (REMOTE_REPO_ROOT === '') {
+        $issues[] = 'REMOTE_REPO_ROOT is empty.';
+    }
+
+    if (REMOTE_PYTHON === '') {
+        $issues[] = 'REMOTE_PYTHON is empty.';
+    }
+
+    if (REMOTE_OUTPUT_ROOT === '') {
+        $issues[] = 'REMOTE_OUTPUT_ROOT is empty.';
+    }
+
+    return $issues;
+}
+
+function build_ssh_training_command($job)
 {
     $sshTarget = REMOTE_SSH_USER . '@' . REMOTE_SSH_HOST;
     $remoteCommand = build_remote_command($job);
-    $command = sprintf(
+
+    return sprintf(
         'ssh -i %s -p %d %s %s',
         escapeshellarg(REMOTE_SSH_KEY),
         REMOTE_SSH_PORT,
         escapeshellarg($sshTarget),
         escapeshellarg($remoteCommand)
     );
+}
+
+function run_remote_training_job($job)
+{
+    $configIssues = remote_training_config_issues();
+    if ($configIssues !== []) {
+        throw new RuntimeException('Remote training is not configured: ' . implode(' ', $configIssues));
+    }
+
+    $command = build_ssh_training_command($job);
+    log_queue_worker('Running remote training command.', ['job_id' => (int) $job['id'], 'command' => $command]);
 
     $output = [];
     $exitCode = 0;
@@ -641,7 +708,7 @@ function run_remote_training_job($job)
     $raw = trim(implode("\n", $output));
 
     if ($exitCode !== 0) {
-        throw new RuntimeException('Remote training failed: ' . $raw);
+        throw new RuntimeException('Remote training failed with exit code ' . (string) $exitCode . ': ' . ($raw !== '' ? $raw : '[no output]'));
     }
 
     $manifest = json_decode($raw, true);

@@ -54,8 +54,18 @@ def run_training(args: argparse.Namespace, job_dir: Path) -> dict[str, Path]:
         str(job_dir),
     ]
 
-    with log_path.open("w", encoding="utf-8") as handle:
-        subprocess.run(command, stdout=handle, stderr=subprocess.STDOUT, check=True)
+    try:
+        with log_path.open("w", encoding="utf-8") as handle:
+            subprocess.run(command, stdout=handle, stderr=subprocess.STDOUT, check=True)
+    except subprocess.CalledProcessError as exc:
+        tail = ""
+        if log_path.exists():
+            lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+            tail = "\n".join(lines[-80:])
+        detail = f"Training script failed with exit code {exc.returncode}."
+        if tail:
+            detail += "\n\nLast training log lines:\n" + tail
+        raise RuntimeError(detail) from exc
 
     return {
         "model": newest_file(job_dir / "models", f"{args.ticker}_model_cpp_*.pt"),
