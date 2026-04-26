@@ -171,7 +171,7 @@ function search_yfinance_tickers($query, $limit = 10, &$error = null)
 
     $script = WEB_ROOT . '/tools/search_yfinance.py';
     if (!is_file($script)) {
-        $error = 'The yfinance search helper is missing.';
+        $error = 'The yfinance search helper is missing at ' . $script . '.';
         return [];
     }
 
@@ -187,6 +187,7 @@ function search_yfinance_tickers($query, $limit = 10, &$error = null)
     $exitCode = 0;
     exec($command . ' 2>&1', $output, $exitCode);
     $raw = trim(implode("\n", $output));
+    log_yfinance_search_debug($query, $command, $exitCode, $raw);
 
     if ($raw === '') {
         $error = 'The yfinance search helper returned no output.';
@@ -220,12 +221,33 @@ function search_yfinance_tickers($query, $limit = 10, &$error = null)
     }
 
     if (!isset($payload['results']) || !is_array($payload['results'])) {
+        log_yfinance_search_debug($query, $command, $exitCode, $raw, 0);
         return [];
     }
 
-    return array_values(array_filter($payload['results'], static function ($row) {
+    $results = array_values(array_filter($payload['results'], static function ($row) {
         return is_array($row) && !empty($row['symbol']);
     }));
+    log_yfinance_search_debug($query, $command, $exitCode, $raw, count($results));
+    return $results;
+}
+
+function log_yfinance_search_debug($query, $command, $exitCode, $raw, $resultCount = null)
+{
+    if (!is_dir(LOG_ROOT)) {
+        @mkdir(LOG_ROOT, 0775, true);
+    }
+
+    $message = '[' . date(DATE_ATOM) . '] yfinance search' . "\n";
+    $message .= 'query=' . $query . "\n";
+    $message .= 'command=' . $command . "\n";
+    $message .= 'exit_code=' . (string) $exitCode . "\n";
+    if ($resultCount !== null) {
+        $message .= 'parsed_results=' . (string) $resultCount . "\n";
+    }
+    $message .= 'raw=' . ($raw !== '' ? $raw : '[empty]') . "\n\n";
+
+    @file_put_contents(LOG_ROOT . '/yfinance-search.log', $message, FILE_APPEND);
 }
 
 function fetch_graphs_for_ticker($pdo, $ticker, $limit = 12)
