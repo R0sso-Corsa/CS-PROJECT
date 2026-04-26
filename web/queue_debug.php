@@ -10,8 +10,18 @@ $jobId = isset($_GET['job']) ? (int) $_GET['job'] : 0;
 $job = $pdo instanceof PDO && $jobId > 0 ? find_job($pdo, $jobId) : null;
 $configIssues = remote_training_config_issues();
 $recentJobs = $pdo instanceof PDO ? fetch_recent_jobs($pdo, 8) : [];
+$queueCounts = $pdo instanceof PDO ? fetch_queue_status_counts($pdo) : [];
+$runningJobs = $pdo instanceof PDO ? fetch_running_jobs($pdo, 5) : [];
 $command = $job !== null ? build_ssh_training_command($job) : '';
 $remoteCommand = $job !== null ? build_remote_command($job) : '';
+$logTail = '';
+
+if (is_file(QUEUE_WORKER_LOG) && is_readable(QUEUE_WORKER_LOG)) {
+    $lines = file(QUEUE_WORKER_LOG, FILE_IGNORE_NEW_LINES);
+    if (is_array($lines)) {
+        $logTail = implode("\n", array_slice($lines, -80));
+    }
+}
 
 $checks = [
     'PHP CLI binary' => [
@@ -90,6 +100,37 @@ render_layout_start('Queue Debug', 'search');
 </section>
 
 <section>
+    <h2>Queue status</h2>
+    <?php if ($queueCounts === []): ?>
+        <p>Queue counts are unavailable because the database is not connected.</p>
+    <?php else: ?>
+        <dl>
+            <dt>Queued</dt>
+            <dd><?= h((string) $queueCounts['queued']) ?></dd>
+            <dt>Running</dt>
+            <dd><?= h((string) $queueCounts['running']) ?></dd>
+            <dt>Completed</dt>
+            <dd><?= h((string) $queueCounts['completed']) ?></dd>
+            <dt>Failed</dt>
+            <dd><?= h((string) $queueCounts['failed']) ?></dd>
+        </dl>
+    <?php endif; ?>
+
+    <?php if ($runningJobs !== []): ?>
+        <p><strong>Important:</strong> a running job blocks the queue from starting another job.</p>
+        <ul>
+            <?php foreach ($runningJobs as $running): ?>
+                <li>
+                    <a href="<?= h(app_url('/queue_debug.php?job=' . (int) $running['id'])) ?>">
+                        Job #<?= h((string) $running['id']) ?> - <?= h($running['ticker_symbol']) ?> - started <?= h((string) $running['started_at']) ?>
+                    </a>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    <?php endif; ?>
+</section>
+
+<section>
     <h2>Inspect job command</h2>
     <form method="get">
         <p>
@@ -116,6 +157,15 @@ render_layout_start('Queue Debug', 'search');
                 <dd><pre><?= h((string) $job['failure_message']) ?></pre></dd>
             <?php endif; ?>
         </dl>
+    <?php endif; ?>
+</section>
+
+<section>
+    <h2>Queue worker log tail</h2>
+    <?php if ($logTail === ''): ?>
+        <p>No readable queue worker log was found at <?= h(QUEUE_WORKER_LOG) ?>.</p>
+    <?php else: ?>
+        <pre><?= h($logTail) ?></pre>
     <?php endif; ?>
 </section>
 

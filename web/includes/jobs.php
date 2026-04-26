@@ -87,6 +87,46 @@ function fetch_recent_jobs($pdo, $limit = 8)
     return $stmt->fetchAll();
 }
 
+function fetch_queue_status_counts($pdo)
+{
+    $counts = [
+        'queued' => 0,
+        'running' => 0,
+        'completed' => 0,
+        'failed' => 0,
+    ];
+
+    $stmt = $pdo->query(
+        "SELECT status, COUNT(*) AS total
+         FROM prediction_jobs
+         GROUP BY status"
+    );
+
+    foreach ($stmt->fetchAll() as $row) {
+        $status = isset($row['status']) ? (string) $row['status'] : '';
+        if (array_key_exists($status, $counts)) {
+            $counts[$status] = (int) $row['total'];
+        }
+    }
+
+    return $counts;
+}
+
+function fetch_running_jobs($pdo, $limit = 5)
+{
+    $stmt = $pdo->prepare(
+        "SELECT j.*, t.symbol AS ticker_symbol
+         FROM prediction_jobs j
+         INNER JOIN tickers t ON t.id = j.ticker_id
+         WHERE j.status = 'running'
+         ORDER BY j.started_at ASC, j.id ASC
+         LIMIT :limit"
+    );
+    $stmt->bindValue('limit', $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll();
+}
+
 function fetch_recent_graphs($pdo, $limit = 8)
 {
     $stmt = $pdo->prepare(
@@ -481,6 +521,13 @@ function process_prediction_queue($pdo)
     ensure_storage_directories();
     log_queue_worker('Queue worker started.');
 
+    $result = [
+        'lock_acquired' => false,
+        'processed' => 0,
+        'failed' => 0,
+        'message' => 'Queue worker started.',
+    ];
+
     $lockHandle = fopen(QUEUE_WORKER_LOCK, 'c+');
     if ($lockHandle === false) {
         throw new RuntimeException('Unable to create the queue worker lock file.');
@@ -489,13 +536,33 @@ function process_prediction_queue($pdo)
     if (!flock($lockHandle, LOCK_EX | LOCK_NB)) {
         log_queue_worker('Another queue worker already holds the lock; exiting.');
         fclose($lockHandle);
-        return;
+        $result['message'] = 'Another queue worker already holds the lock.';
+        return $result;
     }
+
+    $result['lock_acquired'] = true;
 
     try {
         while (true) {
+            $counts = fetch_queue_status_counts($pdo);
+            log_queue_worker('Queue status check.', $counts);
+
+            if ($counts['running'] > 0) {
+                $result['message'] = 'A running job already exists, so this worker will not start another job.';
+                log_queue_worker($result['message'], ['running_jobs' => fetch_running_jobs($pdo, 5)]);
+                break;
+            }
+
+            if ($counts['queued'] === 0) {
+                $result['message'] = 'No queued jobs are waiting.';
+                log_queue_worker($result['message']);
+                break;
+            }
+
             $job = claim_next_job($pdo);
             if ($job === null) {
+                $result['message'] = 'No job could be claimed.';
+                log_queue_worker($result['message']);
                 break;
             }
 
@@ -506,16 +573,23 @@ function process_prediction_queue($pdo)
                 $graphId = save_graph_from_job($pdo, $job, $manifest, $imports);
                 mark_job_completed($pdo, (int) $job['id'], $graphId, $manifest);
                 log_queue_worker('Completed job.', ['job_id' => (int) $job['id'], 'graph_id' => $graphId]);
+                $result['processed']++;
+                $result['message'] = 'Processed job #' . (string) $job['id'] . '.';
             } catch (Throwable $error) {
                 mark_job_failed($pdo, (int) $job['id'], $error->getMessage());
                 log_queue_worker('Failed job.', ['job_id' => (int) $job['id'], 'error' => $error->getMessage()]);
+                $result['processed']++;
+                $result['failed']++;
+                $result['message'] = 'Job #' . (string) $job['id'] . ' failed: ' . $error->getMessage();
             }
         }
     } finally {
         flock($lockHandle, LOCK_UN);
         fclose($lockHandle);
-        log_queue_worker('Queue worker finished.');
+        log_queue_worker('Queue worker finished.', $result);
     }
+
+    return $result;
 }
 
 function log_queue_worker($message, $context = [])
