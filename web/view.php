@@ -86,6 +86,15 @@ render_layout_start('View', 'search');
             <?php endif; ?>
         </section>
 
+        <section>
+            <h2>Residuals</h2>
+            <?php if (graph_asset_exists(db(), (int) $graph['id'], 'residuals')): ?>
+                <img src="<?= h(app_url('/asset.php?graph=' . (int) $graph['id'] . '&kind=residuals')) ?>" alt="Residuals graph for <?= h($graph['ticker_symbol']) ?>">
+            <?php else: ?>
+                <p>Residuals graph asset is not available yet.</p>
+            <?php endif; ?>
+        </section>
+
         <form method="post" action="<?= h(app_url('/request_prediction.php')) ?>">
             <input type="hidden" name="ticker" value="<?= h($graph['ticker_symbol']) ?>">
             <p><button type="submit">Create New Graph</button></p>

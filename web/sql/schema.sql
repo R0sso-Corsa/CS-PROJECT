@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS saved_graphs (
 CREATE TABLE IF NOT EXISTS saved_graph_assets (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     graph_id INT UNSIGNED NOT NULL,
-    asset_kind ENUM('summary', 'detail') NOT NULL,
+    asset_kind ENUM('summary', 'detail', 'residuals') NOT NULL,
     mime_type VARCHAR(120) NOT NULL,
     original_name VARCHAR(255) NOT NULL,
     binary_data LONGBLOB NOT NULL,
@@ -85,4 +85,3 @@ CREATE TABLE IF NOT EXISTS saved_graph_assets (
 
 -- For a real account, create a user with PHP and `password_hash()`.
 -- Until then, the site also accepts the demo fallback from `web/includes/config.php`.
-

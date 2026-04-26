@@ -550,6 +550,7 @@ function import_remote_manifest($manifest, $job)
         'job_dir' => $jobDir,
         'summary_plot' => $jobDir . '/summary.png',
         'detail_plot' => $jobDir . '/detail.png',
+        'residuals_plot' => $jobDir . '/residuals.png',
         'predictions_csv' => $jobDir . '/predictions.csv',
         'forecast_csv' => $jobDir . '/forecast.csv',
         'training_log' => $jobDir . '/training.log',
@@ -560,6 +561,7 @@ function import_remote_manifest($manifest, $job)
     $required = [
         'summary_plot' => $local['summary_plot'],
         'detail_plot' => $local['detail_plot'],
+        'residuals_plot' => $local['residuals_plot'],
         'predictions_csv' => $local['predictions_csv'],
         'forecast_csv' => $local['forecast_csv'],
     ];
@@ -608,7 +610,7 @@ function save_graph_from_job($pdo, $job, $manifest, $imports)
 
     $graphId = (int) $pdo->lastInsertId();
 
-    foreach (['summary' => $imports['summary_plot'], 'detail' => $imports['detail_plot']] as $kind => $path) {
+    foreach (['summary' => $imports['summary_plot'], 'detail' => $imports['detail_plot'], 'residuals' => $imports['residuals_plot']] as $kind => $path) {
         $asset = $pdo->prepare(
             "INSERT INTO saved_graph_assets
                 (graph_id, asset_kind, mime_type, original_name, binary_data)
@@ -635,6 +637,19 @@ function save_graph_from_job($pdo, $job, $manifest, $imports)
             'future_days' => isset($stats['future_days']) ? (string) $stats['future_days'] : 'n/a',
             'graph_id' => $graphId,
         ]);
+
+        if (isset($stats['residual_mean']) || isset($stats['residual_std'])) {
+            $residualStmt = $pdo->prepare(
+                "UPDATE saved_graphs
+                 SET summary_text = CONCAT(summary_text, '\nResidual mean: ', :residual_mean, ' | Residual standard deviation: ', :residual_std)
+                 WHERE id = :graph_id"
+            );
+            $residualStmt->execute([
+                'residual_mean' => isset($stats['residual_mean']) ? (string) $stats['residual_mean'] : 'n/a',
+                'residual_std' => isset($stats['residual_std']) ? (string) $stats['residual_std'] : 'n/a',
+                'graph_id' => $graphId,
+            ]);
+        }
     }
 
     return $graphId;

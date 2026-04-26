@@ -6,7 +6,7 @@ require_login();
 
 $graphId = isset($_GET['graph']) ? (int) $_GET['graph'] : 0;
 $kind = isset($_GET['kind']) ? (string) $_GET['kind'] : 'summary';
-if (!in_array($kind, ['summary', 'detail'], true) || $graphId <= 0) {
+if (!in_array($kind, ['summary', 'detail', 'residuals'], true) || $graphId <= 0) {
     http_response_code(404);
     exit;
 }

@@ -102,6 +102,46 @@ def render_summary_plot(predictions_csv: Path, forecast_csv: Path, out_path: Pat
     return {"rmse": rmse, "mae": mae, "future_days": float(len(future_df))}
 
 
+def render_residuals_plot(predictions_csv: Path, out_path: Path, ticker: str) -> dict[str, float]:
+    pred_df = pd.read_csv(predictions_csv)
+    pred_df["Date"] = pd.to_datetime(pred_df["Date"])
+
+    residuals = pred_df["Actual"] - pred_df["Predicted"]
+    residual_mean = float(residuals.mean())
+    residual_std = float(residuals.std())
+
+    fig, axes = plt.subplots(2, 1, figsize=(12, 8))
+    axes[0].scatter(pred_df["Date"], residuals, color="#334155", alpha=0.75, s=24, label="Residual")
+    axes[0].axhline(0, color="#dc2626", linestyle="--", linewidth=1.2, label="Zero error")
+    axes[0].axhline(residual_mean, color="#0f766e", linestyle="-", linewidth=1.2, label="Mean residual")
+    axes[0].fill_between(
+        pred_df["Date"],
+        residual_mean - residual_std,
+        residual_mean + residual_std,
+        color="#94a3b8",
+        alpha=0.18,
+        label="One standard deviation",
+    )
+    axes[0].set_title(f"{ticker} residuals over the test period")
+    axes[0].set_ylabel("Actual - predicted")
+    axes[0].grid(alpha=0.25)
+    axes[0].legend()
+
+    axes[1].hist(residuals, bins=24, color="#64748b", edgecolor="#0f172a", alpha=0.85)
+    axes[1].axvline(0, color="#dc2626", linestyle="--", linewidth=1.2)
+    axes[1].axvline(residual_mean, color="#0f766e", linestyle="-", linewidth=1.2)
+    axes[1].set_title("Residual distribution")
+    axes[1].set_xlabel("Residual")
+    axes[1].set_ylabel("Count")
+    axes[1].grid(alpha=0.25, axis="y")
+
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=220, bbox_inches="tight")
+    plt.close(fig)
+
+    return {"residual_mean": residual_mean, "residual_std": residual_std}
+
+
 def render_detail_plot(forecast_csv: Path, out_path: Path, ticker: str) -> None:
     future_df = pd.read_csv(forecast_csv)
     future_df["Date"] = pd.to_datetime(future_df["Date"])
@@ -154,7 +194,9 @@ def main() -> None:
 
     summary_plot = job_dir / "plots" / "summary.png"
     detail_plot = job_dir / "plots" / "detail.png"
+    residuals_plot = job_dir / "plots" / "residuals.png"
     stats = render_summary_plot(artifacts["predictions_csv"], artifacts["forecast_csv"], summary_plot, args.ticker)
+    stats.update(render_residuals_plot(artifacts["predictions_csv"], residuals_plot, args.ticker))
     render_detail_plot(artifacts["forecast_csv"], detail_plot, args.ticker)
 
     manifest = {
@@ -169,6 +211,7 @@ def main() -> None:
             "forecast_csv": str(artifacts["forecast_csv"]),
             "summary_plot": str(summary_plot),
             "detail_plot": str(detail_plot),
+            "residuals_plot": str(residuals_plot),
             "training_log": str(artifacts["training_log"]),
         },
     }
@@ -179,4 +222,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
