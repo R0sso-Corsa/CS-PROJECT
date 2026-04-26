@@ -51,6 +51,12 @@ $recentGraphs = [];
 $recentJobs = [];
 $selectedTicker = null;
 $queueTicker = null;
+$yfinanceMatches = [];
+$yfinanceError = null;
+
+if ($query !== '') {
+    $yfinanceMatches = search_yfinance_tickers($query, 10, $yfinanceError);
+}
 
 if ($pdo instanceof PDO) {
     $matches = $query !== '' ? search_ticker_history($pdo, $query) : [];
@@ -70,7 +76,7 @@ render_layout_start('Search', 'search');
 ?>
 
 <h1>Search ticker history</h1>
-<p>Search by exact ticker or by keywords already stored in the website, then open the matching ticker, review its history, or queue a new graph.</p>
+<p>Search by exact ticker, stored website history, or Yahoo Finance keyword results, then open a matching ticker or queue a new graph.</p>
 
 <?php if ($dbError !== null): ?>
     <section>
@@ -137,6 +143,36 @@ render_layout_start('Search', 'search');
             <?php if ($selectedTicker === null): ?>
                 <p>Choose one of the matching ticker links above to open its stored graphs and job history.</p>
             <?php endif; ?>
+        <?php endif; ?>
+    </section>
+
+    <section>
+        <h2>Yahoo Finance results for "<?= h($query) ?>"</h2>
+        <?php if ($yfinanceError !== null): ?>
+            <p><strong>Yahoo Finance lookup failed:</strong> <?= h($yfinanceError) ?></p>
+        <?php elseif ($yfinanceMatches === []): ?>
+            <p>No Yahoo Finance ticker matches were found.</p>
+        <?php else: ?>
+            <ul>
+                <?php foreach ($yfinanceMatches as $result): ?>
+                    <li>
+                        <a href="<?= h(app_url('/search.php?ticker=' . urlencode((string) $result['symbol']))) ?>">
+                            <?= h((string) $result['symbol']) ?>
+                        </a>
+                        -
+                        <?= h(isset($result['name']) ? (string) $result['name'] : '') ?>
+                        <?php if (!empty($result['exchange'])): ?>
+                            -
+                            <?= h((string) $result['exchange']) ?>
+                        <?php endif; ?>
+                        <?php if (!empty($result['type'])): ?>
+                            -
+                            <?= h((string) $result['type']) ?>
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+            <p>Select a Yahoo Finance ticker above to search it directly and queue it for a forecast.</p>
         <?php endif; ?>
     </section>
 

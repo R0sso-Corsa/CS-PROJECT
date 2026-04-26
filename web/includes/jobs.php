@@ -162,6 +162,72 @@ function search_ticker_history($pdo, $query)
     return $stmt->fetchAll();
 }
 
+function search_yfinance_tickers($query, $limit = 10, &$error = null)
+{
+    $query = normalise_search_query($query);
+    if ($query === '') {
+        return [];
+    }
+
+    $script = WEB_ROOT . '/tools/search_yfinance.py';
+    if (!is_file($script)) {
+        $error = 'The yfinance search helper is missing.';
+        return [];
+    }
+
+    $command = sprintf(
+        '%s %s %s --limit %d',
+        escapeshellarg(YFINANCE_SEARCH_PYTHON),
+        escapeshellarg($script),
+        escapeshellarg($query),
+        (int) $limit
+    );
+
+    $output = [];
+    $exitCode = 0;
+    exec($command . ' 2>&1', $output, $exitCode);
+    $raw = trim(implode("\n", $output));
+
+    if ($raw === '') {
+        $error = 'The yfinance search helper returned no output.';
+        return [];
+    }
+
+    $payload = json_decode($raw, true);
+    if (!is_array($payload)) {
+        foreach ($output as $line) {
+            $candidate = trim((string) $line);
+            if ($candidate === '' || $candidate[0] !== '{') {
+                continue;
+            }
+
+            $decoded = json_decode($candidate, true);
+            if (is_array($decoded)) {
+                $payload = $decoded;
+                break;
+            }
+        }
+    }
+
+    if (!is_array($payload)) {
+        $error = 'The yfinance search helper returned unreadable output: ' . $raw;
+        return [];
+    }
+
+    if (empty($payload['ok'])) {
+        $error = isset($payload['error']) ? (string) $payload['error'] : 'The yfinance lookup failed.';
+        return [];
+    }
+
+    if (!isset($payload['results']) || !is_array($payload['results'])) {
+        return [];
+    }
+
+    return array_values(array_filter($payload['results'], static function ($row) {
+        return is_array($row) && !empty($row['symbol']);
+    }));
+}
+
 function fetch_graphs_for_ticker($pdo, $ticker, $limit = 12)
 {
     $stmt = $pdo->prepare(
