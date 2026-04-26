@@ -11,6 +11,14 @@ try {
     require_once dirname(__DIR__) . '/includes/jobs.php';
 
     $result = process_prediction_queue(db());
+    if ($result === null) {
+        $result = [
+            'lock_acquired' => null,
+            'processed' => null,
+            'failed' => null,
+            'message' => 'process_prediction_queue() returned no result. Upload the latest web/includes/jobs.php as well as this CLI file.',
+        ];
+    }
     echo 'Queue worker result: ' . json_encode($result, JSON_UNESCAPED_SLASHES) . PHP_EOL;
     exit(isset($result['failed']) && (int) $result['failed'] > 0 ? 1 : 0);
 } catch (Throwable $exception) {
