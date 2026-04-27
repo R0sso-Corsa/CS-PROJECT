@@ -1,0 +1,22 @@
+{
+  "job_id": 37,
+  "ticker": "BTC-USD",
+  "job_dir": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\btc-usd\\job_37",
+  "summary": "Remote training for BTC-USD completed successfully. Graph assets were generated and are ready for import.",
+  "stats": {
+    "rmse": 4838.314693187054,
+    "mae": 3786.8838487287767,
+    "future_days": 30.0,
+    "residual_mean": 3045.0749229304324,
+    "residual_std": 3765.5871514966657
+  },
+  "files": {
+    "model": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\btc-usd\\job_37\\models\\BTC-USD_model_cpp_20260427_203107.pt",
+    "predictions_csv": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\btc-usd\\job_37\\predictions\\BTC-USD_predictions_cpp_20260427_203107.csv",
+    "forecast_csv": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\btc-usd\\job_37\\forecasts\\BTC-USD_future_30d_cpp_20260427_203107.csv",
+    "summary_plot": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\btc-usd\\job_37\\plots\\summary.png",
+    "detail_plot": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\btc-usd\\job_37\\plots\\detail.png",
+    "residuals_plot": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\btc-usd\\job_37\\plots\\residuals.png",
+    "training_log": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\btc-usd\\job_37\\training.log"
+  }
+}

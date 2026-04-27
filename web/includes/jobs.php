@@ -775,6 +775,7 @@ function build_ssh_common_options()
     $options = [
         '-o BatchMode=yes',
         '-o IdentitiesOnly=yes',
+        '-o PubkeyAuthentication=unbound',
     ];
 
     $knownHosts = remote_ssh_known_hosts_path();

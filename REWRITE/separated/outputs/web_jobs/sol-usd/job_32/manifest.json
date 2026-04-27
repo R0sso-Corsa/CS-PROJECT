@@ -1,0 +1,22 @@
+{
+  "job_id": 32,
+  "ticker": "SOL-USD",
+  "job_dir": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\sol-usd\\job_32",
+  "summary": "Remote training for SOL-USD completed successfully. Graph assets were generated and are ready for import.",
+  "stats": {
+    "rmse": 16.128297256241396,
+    "mae": 13.180905507634291,
+    "future_days": 30.0,
+    "residual_mean": 12.962262788751653,
+    "residual_std": 9.611493738720077
+  },
+  "files": {
+    "model": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\sol-usd\\job_32\\models\\SOL-USD_model_cpp_20260427_190547.pt",
+    "predictions_csv": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\sol-usd\\job_32\\predictions\\SOL-USD_predictions_cpp_20260427_190547.csv",
+    "forecast_csv": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\sol-usd\\job_32\\forecasts\\SOL-USD_future_30d_cpp_20260427_190547.csv",
+    "summary_plot": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\sol-usd\\job_32\\plots\\summary.png",
+    "detail_plot": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\sol-usd\\job_32\\plots\\detail.png",
+    "residuals_plot": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\sol-usd\\job_32\\plots\\residuals.png",
+    "training_log": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\sol-usd\\job_32\\training.log"
+  }
+}

@@ -37,6 +37,15 @@ function h($value)
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
 
+function display_job_status($status)
+{
+    $status = strtolower(trim((string) $status));
+    if ($status === 'completed') {
+        return 'processed';
+    }
+    return $status;
+}
+
 function redirect_to($path, $status = 302)
 {
     $target = app_url($path);

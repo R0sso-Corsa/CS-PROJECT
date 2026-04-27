@@ -1,0 +1,22 @@
+{
+  "job_id": 35,
+  "ticker": "AAPL",
+  "job_dir": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\aapl\\job_35",
+  "summary": "Remote training for AAPL completed successfully. Graph assets were generated and are ready for import.",
+  "stats": {
+    "rmse": 11.553249570645603,
+    "mae": 9.648316839969793,
+    "future_days": 30.0,
+    "residual_mean": 8.51644595820324,
+    "residual_std": 7.824155166968346
+  },
+  "files": {
+    "model": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\aapl\\job_35\\models\\AAPL_model_cpp_20260427_191744.pt",
+    "predictions_csv": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\aapl\\job_35\\predictions\\AAPL_predictions_cpp_20260427_191744.csv",
+    "forecast_csv": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\aapl\\job_35\\forecasts\\AAPL_future_30d_cpp_20260427_191744.csv",
+    "summary_plot": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\aapl\\job_35\\plots\\summary.png",
+    "detail_plot": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\aapl\\job_35\\plots\\detail.png",
+    "residuals_plot": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\aapl\\job_35\\plots\\residuals.png",
+    "training_log": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\aapl\\job_35\\training.log"
+  }
+}

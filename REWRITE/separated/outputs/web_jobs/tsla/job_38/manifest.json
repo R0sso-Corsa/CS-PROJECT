@@ -1,0 +1,22 @@
+{
+  "job_id": 38,
+  "ticker": "TSLA",
+  "job_dir": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\tsla\\job_38",
+  "summary": "Remote training for TSLA completed successfully. Graph assets were generated and are ready for import.",
+  "stats": {
+    "rmse": 15.743327612091145,
+    "mae": 12.423032467158338,
+    "future_days": 30.0,
+    "residual_mean": 3.6951566787938055,
+    "residual_std": 15.33735494013968
+  },
+  "files": {
+    "model": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\tsla\\job_38\\models\\TSLA_model_cpp_20260427_203526.pt",
+    "predictions_csv": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\tsla\\job_38\\predictions\\TSLA_predictions_cpp_20260427_203526.csv",
+    "forecast_csv": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\tsla\\job_38\\forecasts\\TSLA_future_30d_cpp_20260427_203526.csv",
+    "summary_plot": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\tsla\\job_38\\plots\\summary.png",
+    "detail_plot": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\tsla\\job_38\\plots\\detail.png",
+    "residuals_plot": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\tsla\\job_38\\plots\\residuals.png",
+    "training_log": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\tsla\\job_38\\training.log"
+  }
+}

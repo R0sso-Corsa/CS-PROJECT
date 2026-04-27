@@ -34,6 +34,10 @@ Instead of making a whole new database for every ticker, I used a normal relatio
 
 I added `web/tools/run_remote_prediction_job.py` so the Linux website would not have to guess where the output files were saved. The helper script runs the training, creates the graph images, and returns a JSON file listing the important output paths. This made the website-to-training link much clearer.
 
+### 7. I made the web job settings explicit
+
+Later I added default request settings to each queued job, including device, epochs, batch size, prediction days, future days, and Monte Carlo run count. This means the job record now stores the important training choices that were used when the forecast was created. That is better than relying only on hidden defaults inside the script, because it makes old runs easier to understand afterwards.
+
 ## Main website features I added
 
 ### 1. I replaced the old static prototype with a real PHP login system
@@ -55,6 +59,10 @@ I created `healthcheck.php` so I could quickly test whether the deployed site wa
 ### 5. I added frontend debug logging
 
 At one point it was not always clear whether buttons and forms were working properly in the browser. To make debugging easier, I added JavaScript logging so button presses and form submissions could be tracked. This helped me work out whether a problem was happening in the browser or later in the server logic.
+
+### 6. I added a queue debug page
+
+I added `queue_debug.php` so I could inspect the queue system from inside the website. It shows database queue counts, currently running jobs, local worker checks, remote SSH settings, the known hosts path, the generated PowerShell command, the full SSH command, and the worker log tail. This became important because queue failures can happen at several layers, and the debug page makes it much easier to see which layer is being reached.
 
 ## Deployment and server work
 
@@ -109,6 +117,10 @@ When a job failed, it stayed in the `failed` state. This was actually a safe des
 ### 3. A major bug came from Windows command quoting
 
 One of the clearest bugs was caused by the way the Linux worker built the remote Windows command. It used Unix-style quoting, but Windows PowerShell and the Windows shell do not read that format the same way. This caused a broken command to reach Windows. I fixed this by changing the worker so it launched the helper through PowerShell with Windows-safe quoting.
+
+### 4. SSH public key authentication needed one more compatibility setting
+
+After the PowerShell command was fixed, the SSH options still needed to match the Windows OpenSSH setup. I added the public key authentication mode used by the current connection path so the worker command is closer to the manual SSH command that already works. This matters because a queue job can only succeed if the non-interactive worker uses the same authentication assumptions as the successful manual test.
 
 ## Public access and exposure
 
@@ -210,6 +222,18 @@ When I tried using `http://127.0.0.1/`, Tailscale returned an error saying a por
 
 The strongest final fix for the Tailscale problem was to clear old config and then attach Funnel directly to `http://127.0.0.1:80`. This made the local target clear and removed confusion. The expected result from that setup was a public `https://...ts.net` address that other people could use in a browser.
 
+### 22. The website now imports three graph assets
+
+The first version of the web import focused on the main forecast images. I later extended it so a completed job can store a summary graph, a detailed forecast graph, and a residuals graph. The residuals graph is useful because it shows the difference between actual and predicted values over the test period, which gives more evidence about model error than a forecast image alone.
+
+### 23. The remote helper returns a full manifest
+
+The Windows helper now writes a `manifest.json` file after a successful run. The manifest records the job id, ticker, output folder, model path, predictions CSV, forecast CSV, training log, plot paths, and statistics such as RMSE, MAE, residual mean, and residual standard deviation. The PHP worker stores this manifest and uses it to import the correct files instead of trying to guess filenames.
+
+### 24. A successful SOL-USD queue run proved the full path
+
+A later test produced a completed SOL-USD web job at `REWRITE/separated/outputs/web_jobs/sol-usd/job_28/`. That folder contains the model file, prediction CSV, 30-day forecast CSV, summary plot, detail plot, residuals plot, training log, and manifest. This is useful evidence because it shows that the remote helper can run the training script, generate headless plots, and produce the exact artifacts the website expects to import.
+
 ## Why I later simplified the frontend
 
 ### 1. The PHP version became more styled than I really needed
@@ -234,14 +258,22 @@ Again and again, something that looked like a bug in the site turned out to be a
 
 The most helpful moments were when I found a clear message such as `Undefined constant "DIR"`, `''C:' is not recognized...`, `No serve config`, or `listener already exists for port 443`. Each clear message narrowed the problem down and showed me which layer of the system I needed to fix next.
 
+### 4. Apparent script hangs were sometimes just waiting for input
+
+In the earlier PyTorch work, the script looked like it was hanging near the optimizer setup, but it was actually waiting for interactive input such as device selection. This was an important debugging lesson because the visible line number was misleading. It showed that I needed to check whether the script was blocked on input before assuming the model, optimizer, or GPU had frozen.
+
+### 5. Optimizer choice became part of the project evidence
+
+I investigated the optimizers available in the installed `torch_optimizer` package and confirmed that Lion was not available in version 0.3.0. After comparing the available choices, I selected Lamb because it is fast, layer-adaptive, and appropriate for deep sequence models such as the LSTM used in this project. This helped turn optimizer choice into a reasoned design decision rather than a random experiment.
+
 ## Current state of the website work
 
-The project now has a real PHP website rather than just a static mockup. It includes login, registration, ticker search, queue creation, saved graph viewing, health diagnostics, deployment-aware path handling, remote execution support, and documented public exposure steps. It has also been simplified visually so the main attention stays on functionality.
+The project now has a real PHP website rather than just a static mockup. It includes login, registration, ticker search, queue creation, saved graph viewing, health diagnostics, deployment-aware path handling, remote execution support, queue debugging, manifest import, residual plot storage, and documented public exposure steps. It has also been simplified visually so the main attention stays on functionality.
 
 ## Recommended next steps
 
-The next sensible steps are to keep testing the full queue cycle on Linux, make sure the deployed `includes/jobs.php` file contains the Windows quoting fix, confirm the Tailscale Funnel setup with the correct localhost target, and continue improving logging and recovery for interrupted or stale jobs.
+The next sensible steps are to keep testing the full queue cycle on Linux, make sure the deployed `includes/jobs.php` file contains the Windows quoting and SSH authentication fixes, confirm that completed jobs import all three graph assets into the database, confirm the Tailscale Funnel setup with the correct localhost target, and continue improving logging and recovery for interrupted or stale jobs.
 
 ## Summary
 
-The website started as a PHP/XAMPP interface for logging in, searching for tickers, queueing forecasts, and saving graphs. It then grew into a much larger deployment and debugging task across Linux and Windows. The most important results were not visual. They were the queue system, the SSH-driven training workflow, the database-backed history, the deployment fixes, and the detailed understanding of how all the parts of the system fit together. Rewriting the interface in a simpler HTML style supports that same goal by keeping the focus on how the system works.
+The website started as a PHP/XAMPP interface for logging in, searching for tickers, queueing forecasts, and saving graphs. It then grew into a much larger deployment and debugging task across Linux and Windows. The most important results were not visual. They were the queue system, the SSH-driven training workflow, the manifest-based artifact import, the database-backed history, the deployment fixes, and the detailed understanding of how all the parts of the system fit together. Rewriting the interface in a simpler HTML style supports that same goal by keeping the focus on how the system works.
