@@ -1,0 +1,67 @@
+<mxfile host="65bd71144e">
+    <diagram id="db-schema" name="Database Schema">
+        <mxGraphModel dx="947" dy="803" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="users-table" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor#1976D2;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="50" width="180" height="150" as="geometry"/>
+                </mxCell>
+                <mxCell id="users-title" value="app_users" style="text;fontSize=12;fontStyle=1;fillColor=none;strokeColor=none;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="55" width="160" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="users-content" value="&#xa;user_id PK&#xa;username&#xa;password_hash&#xa;email&#xa;created_at" style="text;fontSize=10;fillColor=none;strokeColor=none;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="75" width="160" height="115" as="geometry"/>
+                </mxCell>
+                <mxCell id="tickers-table" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E3F2FD;strokeColor#1976D2;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="300" y="50" width="180" height="150" as="geometry"/>
+                </mxCell>
+                <mxCell id="tickers-title" value="tickers" style="text;fontSize=12;fontStyle=1;fillColor=none;strokeColor=none;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="310" y="55" width="160" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="tickers-content" value="&#xa;ticker_id PK&#xa;symbol&#xa;company_name&#xa;sector&#xa;last_updated" style="text;fontSize=10;fillColor=none;strokeColor=none;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="310" y="75" width="160" height="115" as="geometry"/>
+                </mxCell>
+                <mxCell id="jobs-table" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor#FFF3E0;strokeColor#F57C00;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="175" y="280" width="200" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="jobs-title" value="prediction_jobs" style="text;fontSize=12;fontStyle=1;fillColor=none;strokeColor=none;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="185" y="285" width="180" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="jobs-content" value="&#xa;job_id PK&#xa;user_id FK&#xa;ticker_id FK&#xa;status (queued/processing/completed/failed)&#xa;hyperparameters JSON&#xa;created_at&#xa;completed_at&#xa;error_message" style="text;fontSize=9;fillColor=none;strokeColor=none;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="185" y="295" width="180" height="170" as="geometry"/>
+                </mxCell>
+                <mxCell id="graphs-table" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor#F3E5F5;strokeColor#7B1FA2;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="450" y="280" width="180" height="150" as="geometry"/>
+                </mxCell>
+                <mxCell id="graphs-title" value="saved_graphs" style="text;fontSize=12;fontStyle=1;fillColor=none;strokeColor=none;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="460" y="285" width="160" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="graphs-content" value="&#xa;graph_id PK&#xa;job_id FK&#xa;graph_type&#xa;title&#xa;description" style="text;fontSize=10;fillColor=none;strokeColor=none;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="460" y="305" width="160" height="115" as="geometry"/>
+                </mxCell>
+                <mxCell id="assets-table" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E8F5E9;strokeColor#388E3C;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="450" y="500" width="180" height="150" as="geometry"/>
+                </mxCell>
+                <mxCell id="assets-title" value="saved_graph_assets" style="text;fontSize=12;fontStyle=1;fillColor=none;strokeColor=none;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="460" y="505" width="160" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="assets-content" value="&#xa;asset_id PK&#xa;graph_id FK&#xa;image_data BLOB&#xa;file_size&#xa;mime_type" style="text;fontSize=10;fillColor=none;strokeColor=none;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="460" y="525" width="160" height="115" as="geometry"/>
+                </mxCell>
+                <mxCell id="rel1" value="creates" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#1976D2;strokeWidth=2;" parent="1" source="users-table" target="jobs-table" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="rel2" value="queried in" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#1976D2;strokeWidth=2;" parent="1" source="tickers-table" target="jobs-table" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="rel3" value="generates" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#F57C00;strokeWidth=2;" parent="1" source="jobs-table" target="graphs-table" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="rel4" value="stores" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#388E3C;strokeWidth=2;" parent="1" source="graphs-table" target="assets-table" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

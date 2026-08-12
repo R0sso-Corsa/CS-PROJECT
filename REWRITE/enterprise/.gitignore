@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv*/
+dist/
+build/
+
+# Data / models
+data/raw/*
+data/processed/*
+models/checkpoints/*
+models/registry/*
+artifacts/*
+!artifacts/.gitkeep
+
+# Logs
+logs/*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Notebooks
+.ipynb_checkpoints/

@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" modified="2026-05-01T12:00:00.000Z" agent="5.0" version="20.0.0">
+  <diagram id="queue-worker" name="Background Queue Worker">
+    <mxGraphModel dx="1200" dy="1600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Queue Worker Flow -->
+        <mxCell id="n1" value="process_queue.php Runs&#10;on Schedule, Linux Server" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#388E3C;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="30" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n2" value="Acquire Lock&#10;One Job at a Time" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E3F2FD;strokeColor#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="120" width="150" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n3" value="Lock Acquired?" style="rhombus;whiteSpace=wrap;html=1;fillColor#FFF3E0;strokeColor#F57C00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="115" y="200" width="120" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n4" value="Skip This Cycle&#10;Exit" style="rounded=0;whiteSpace=wrap;html=1;fillColor#FFEBEE;strokeColor#C62828;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="300" y="210" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n5" value="Query MySQL&#10;SELECT WHERE&#10;status='queued'" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E3F2FD;strokeColor#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="320" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n6" value="Any Jobs Queued?" style="rhombus;whiteSpace=wrap;html=1;fillColor#FFF3E0;strokeColor#F57C00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="115" y="420" width="120" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n7" value="Release Lock&#10;Exit Successfully" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E8F5E9;strokeColor#388E3C;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="300" y="430" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n8" value="Fetch First Queued Job&#10;Get ticker, user_id" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E3F2FD;strokeColor#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="540" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n9" value="UPDATE Job Status&#10;status='processing'" style="rounded=0;whiteSpace=wrap;html=1;fillColor#FFF3E0;strokeColor#F57C00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="640" width="150" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n10" value="Prepare SSH Command&#10;Windows Machine IP" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E3F2FD;strokeColor#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="730" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n11" value="Build Python Command&#10;pytorch_train_cpp.py" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E3F2FD;strokeColor#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="830" width="150" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n12" value="Execute via SSH&#10;run_remote_prediction_job.py" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E8F5E9;strokeColor#388E3C;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="920" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n13" value="Monitor SSH Output&#10;Timeout: 2 hours" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E3F2FD;strokeColor#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1020" width="150" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n14" value="Training Success?" style="rhombus;whiteSpace=wrap;html=1;fillColor#FFF3E0;strokeColor#F57C00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="115" y="1100" width="120" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n15" value="Log Error&#10;Update Status: failed" style="rounded=0;whiteSpace=wrap;html=1;fillColor#FFEBEE;strokeColor#C62828;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="300" y="1110" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n16" value="SCP Download Artifacts&#10;from Windows" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E3F2FD;strokeColor#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1230" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n17" value="Download: model.pt,&#10;predictions.csv, plots.png" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E3F2FD;strokeColor#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="300" y="1240" width="130" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n18" value="Import to Database&#10;Store PNGs as BLOBs" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E8F5E9;strokeColor#388E3C;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1340" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n19" value="Import Success?" style="rhombus;whiteSpace=wrap;html=1;fillColor#FFF3E0;strokeColor#F57C00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="115" y="1440" width="120" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n20" value="Log Error, Cleanup" style="rounded=0;whiteSpace=wrap;html=1;fillColor#FFEBEE;strokeColor#C62828;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="300" y="1450" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n21" value="UPDATE Job Status&#10;status='completed'" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E8F5E9;strokeColor#388E3C;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1570" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n22" value="Update UI Cache&#10;Notify User" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E3F2FD;strokeColor#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1680" width="150" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n23" value="Release Lock&#10;Exit Successfully" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E8F5E9;strokeColor#388E3C;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1770" width="150" height="50" as="geometry" />
+        </mxCell>
+        
+        <!-- Edges -->
+        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n1" target="n2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n2" target="n3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#C62828;strokeWidth=2;" edge="1" parent="1" source="n3" target="n4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#388E3C;strokeWidth=2;" edge="1" parent="1" source="n3" target="n5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n5" target="n6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#C62828;strokeWidth=2;" edge="1" parent="1" source="n6" target="n7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#388E3C;strokeWidth=2;" edge="1" parent="1" source="n6" target="n8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n8" target="n9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n9" target="n10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n10" target="n11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n11" target="n12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n12" target="n13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n13" target="n14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#C62828;strokeWidth=2;" edge="1" parent="1" source="n14" target="n15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#388E3C;strokeWidth=2;" edge="1" parent="1" source="n14" target="n16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#F57C00;strokeWidth=2;" edge="1" parent="1" source="n16" target="n17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#388E3C;strokeWidth=2;" edge="1" parent="1" source="n17" target="n18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n18" target="n19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e19" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#C62828;strokeWidth=2;" edge="1" parent="1" source="n19" target="n20">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e20" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#388E3C;strokeWidth=2;" edge="1" parent="1" source="n19" target="n21">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e21" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n21" target="n22">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e22" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n22" target="n23">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

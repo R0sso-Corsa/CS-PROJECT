@@ -1,0 +1,88 @@
+<mxfile host="65bd71144e">
+    <diagram id="system-arch" name="System Architecture Overview">
+        <mxGraphModel dx="947" dy="803" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="web-bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="20" y="30" width="370" height="240" as="geometry"/>
+                </mxCell>
+                <mxCell id="web-title" value="Web Frontend" style="text;fontSize=14;fontStyle=1;fillColor=none;strokeColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="55" width="250" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="login" value="Login Portal&#xa;login.php" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1976D2;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="90" width="120" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="search" value="Search Stocks&#xa;search.php" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1976D2;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="180" width="120" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="queue" value="&lt;font style=&quot;font-size: 9px;&quot;&gt;Queue Prediction&lt;br&gt;request_prediction.php&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1976D2;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="240" y="180" width="75" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="view" value="View Forecast&#xa;view.php" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1976D2;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="240" y="90" width="75" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="db" value="MySQL Database&#xa;users, tickers,&#xa;jobs, graphs" style="shape=cylinder3d;whiteSpace=wrap;html=1;bound=1;backgroundOutline=1;fillColor=#FFF3E0;strokeColor=#F57C00;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="625" y="100" width="150" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="linux-bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#F57C00;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="350" width="250" height="150" as="geometry"/>
+                </mxCell>
+                <mxCell id="linux-title" value="Linux Server" style="text;fontSize=14;fontStyle=1;fillColor=none;strokeColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="355" width="250" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="queue-worker" value="Background Queue&#xa;Worker&#xa;process_queue.php" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#F57C00;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="70" y="390" width="120" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="ssh-bridge" value="SSH Bridge&#xa;to Windows" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#F57C00;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="205" y="390" width="75" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="windows-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#388E3C;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="450" y="350" width="300" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="windows-title" value="Windows GPU Machine" style="text;fontSize=14;fontStyle=1;fillColor=none;strokeColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="450" y="355" width="300" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="training" value="PyTorch BiLSTM&#xa;Training Engine&#xa;pytorch_train_cpp.py" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#388E3C;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="470" y="390" width="120" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="plotting" value="Graph Generation&#xa;pytorch_plot_cpp.py" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#388E3C;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="615" y="390" width="110" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="filesystem" value="Artifacts Storage&#xa;models, predictions,&#xa;graphs" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#388E3C;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="520" y="490" width="130" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=2;" parent="1" source="login" target="search" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=2;" parent="1" source="search" target="queue" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=2;" parent="1" source="queue" target="db" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=2;" parent="1" source="db" target="view" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=2;" parent="1" source="db" target="queue-worker" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=2;" parent="1" source="queue-worker" target="ssh-bridge" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=2;" parent="1" source="ssh-bridge" target="training" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=2;" parent="1" source="training" target="plotting" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=2;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="plotting" target="filesystem" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=2;" parent="1" source="filesystem" target="queue-worker" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

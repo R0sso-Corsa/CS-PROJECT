@@ -1,0 +1,79 @@
+version: '2.0'
+data:
+  source: yfinance
+  start_date: '2017-01-01'
+  tickers:
+  - BTC-USD
+  - ETH-USD
+  - SOL-USD
+  - AAPL
+  - TSLA
+  - GC=F
+  cache_dir: ./data/raw
+  processed_dir: ./data/processed
+  feature_dir: ./data/features
+models:
+  engine: pytorch
+  lstm:
+    hidden_size: 500
+    num_layers: 4
+    bidirectional: true
+    initial_dropout: 0.6
+    final_dropout: 0.1
+    sequence_length: 30
+    learning_rate: 0.001
+    weight_decay: 0.05
+  transformer:
+    d_model: 128
+    nhead: 4
+    num_layers: 3
+    dropout: 0.2
+  device_auto: true
+  checkpoints_dir: ./models/checkpoints
+  registry_dir: ./models/registry
+  monte_carlo_runs: 100
+training:
+  epochs: 40
+  batch_size: 16
+  optimizer: Ranger
+  validation_split: 0.2
+  early_stopping_patience: 10
+  checkpoint_every: 5
+trading:
+  initial_capital: 100000.0
+  commission_rate: 0.001
+  slippage_pct: 0.0005
+  position_sizing: risk_parity
+  max_open_positions: 3
+  recursive: true
+  recursion_max_depth: 5
+risk:
+  max_drawdown_pct: 0.15
+  var_confidence: 0.95
+  max_position_pct: 0.2
+  kelly_fraction_cap: 0.25
+  stop_loss_atr_mult: 2.0
+  take_profit_atr_mult: 3.5
+backtest:
+  output_dir: ./artifacts
+  metrics:
+  - sharpe_ratio
+  - sortino_ratio
+  - max_drawdown
+  - win_rate
+  - profit_factor
+  - calmar_ratio
+  report_format: html
+api:
+  host: 127.0.0.1
+  port: 8000
+  reload: false
+dashboard:
+  port: 8501
+  title: Recursive Trading Engine
+  theme: dark
+logging:
+  level: INFO
+  file: ./logs/engine.log
+  max_bytes: 10485760
+  backup_count: 10

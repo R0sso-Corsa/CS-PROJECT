@@ -822,6 +822,147 @@ The separated pipeline preserves the mature forecasting logic from `pytorch_plot
 - file reading is stable
 - outputs are easier to audit
 
+## Phase 10: PHP Website and Queue Integration
+
+### Primary files
+
+- `web/index.php`
+- `web/login.php`
+- `web/register.php`
+- `web/logout.php`
+- `web/search.php`
+- `web/request_prediction.php`
+- `web/view.php`
+- `web/asset.php`
+- `web/healthcheck.php`
+- `web/yfinance_debug.php`
+- `web/queue_debug.php`
+- `web/cli/process_queue.php`
+- `web/includes/bootstrap.php`
+- `web/includes/config.php`
+- `web/includes/db.php`
+- `web/includes/auth.php`
+- `web/includes/layout.php`
+- `web/includes/jobs.php`
+
+### Why the PHP layer became important
+
+The project did not stay as only a local Python forecasting script. A major later goal was to make the model usable through a website, where a user could sign in, search for a ticker, request a graph, and return later to view stored results. This meant the PHP code became the bridge between the user-facing pages, the MySQL database, the Linux XAMPP server, and the Windows machine that ran the Python training scripts.
+
+This phase exists because the website introduced a different kind of complexity from the machine-learning code. The Python scripts mainly deal with data, tensors, training, plotting, and output files. The PHP scripts deal with sessions, permissions, forms, redirects, queue records, saved graph records, SSH commands, log files, and deployment diagnostics. Both sides are needed for the finished project to work as a complete system.
+
+### Main page and user journey scripts
+
+`index.php` acts as the website dashboard. It does not train the model itself. Instead, it summarises the current state of the system by showing queued jobs, running jobs, saved graphs, tracked tickers, recent jobs, and recent graph outputs. This made the website feel like a real application rather than a single upload or run button.
+
+The login-related scripts are `login.php`, `register.php`, and `logout.php`. These scripts handle the account flow. `login.php` checks credentials and starts a session. `register.php` creates new users and stores hashed passwords. `logout.php` clears the session. This was an important improvement over the early static prototype because the site could now protect pages and associate forecast jobs with users.
+
+The shared authentication logic lives in `web/includes/auth.php`. I moved this code into an include file so that every protected page could use the same `require_login()` behaviour. This avoided repeating session checks in every page and made the security flow easier to maintain.
+
+### Search and ticker selection scripts
+
+`search.php` became one of the most important user-facing scripts because it connects the visible search form to both local history and live Yahoo Finance search. It lets the user search by stored ticker history, exact ticker symbol, or keyword-style Yahoo results.
+
+The search page also decides whether a ticker can be queued for a new prediction. This mattered because the site originally only searched stored tickers. That was too limiting: a user could not easily create a graph for a symbol that had never been used before. The later version uses the yfinance helper so the website can search for new symbols as well.
+
+The page includes helper functions such as:
+
+```php
+function can_queue_symbol_from_query($query)
+{
+    $query = normalise_search_query($query);
+    if ($query === '') {
+        return false;
+    }
+
+    $symbol = normalise_ticker($query);
+    if ($symbol === '') {
+        return false;
+    }
+
+    return preg_match('/^[A-Z0-9.\-=]{1,20}$/', $symbol) === 1
+        && (preg_match('/[.\-=]/', $symbol) === 1 || strlen($symbol) <= 4);
+}
+```
+
+This validation was necessary because not every search term should become a training job. The site needed to distinguish between a user typing a keyword like "tesla" and a real ticker symbol such as `TSLA`.
+
+### Requesting a new forecast
+
+`request_prediction.php` is the page that turns a user's selected ticker into a queued prediction job. It checks that the user is logged in, validates the submitted ticker, creates or finds the ticker record, inserts a row into the `prediction_jobs` table, and then starts the queue worker.
+
+This design was chosen because model training is too slow to run directly inside a normal browser request. If the page tried to train immediately, the request could time out and the browser would look broken. By creating a database job instead, the website can respond quickly while the heavier work happens in the background.
+
+The actual queue insertion is handled in `web/includes/jobs.php`:
+
+```php
+function enqueue_prediction_job($pdo, $userId, $ticker)
+{
+    $tickerId = get_or_create_ticker($pdo, $ticker);
+    $stmt = $pdo->prepare(
+        "INSERT INTO prediction_jobs
+            (user_id, ticker_id, requested_ticker, status, requested_device, requested_epochs, requested_batch_size, requested_prediction_days, requested_future_days, requested_mc_runs)
+         VALUES
+            (:user_id, :ticker_id, :requested_ticker, 'queued', :requested_device, :requested_epochs, :requested_batch_size, :requested_prediction_days, :requested_future_days, :requested_mc_runs)"
+    );
+```
+
+The important point is that the job stores the parameters used for training, such as device, epochs, batch size, prediction days, future days, and Monte Carlo runs. This makes the stored forecast easier to explain later because the database records the settings that produced it.
+
+### Viewing jobs, graphs, and protected assets
+
+`view.php` lets the user inspect a queued, running, failed, or completed job. It also lets the user open a saved graph. This page is important because the training process is not instant. The user needs a place to check whether a job is still queued, has failed, or has completed successfully.
+
+`asset.php` protects graph files and other imported outputs. Instead of linking directly to files in storage, the site routes access through PHP. This keeps the website structure cleaner and allows access checks to happen before a user sees a saved graph asset.
+
+The graph viewing system depends on the database records created by `jobs.php`. When a remote training run finishes, the PHP worker imports the manifest and saves graph details into the database. The user can then reopen the result from the website instead of searching through output folders manually.
+
+### Shared include files
+
+The `web/includes/` folder is what made the PHP site maintainable.
+
+`bootstrap.php` loads the core configuration and shared functions that every page needs. This gives the website one common entry setup instead of making every page configure itself separately.
+
+`config.php` stores deployment-specific settings such as database details, storage paths, PHP CLI path, remote SSH host, remote SSH user, SSH key path, remote repo root, Python command, and output locations. This file became especially important during deployment because many failures were caused by paths or remote settings not matching the real Linux and Windows machines.
+
+`db.php` contains the database connection logic. The site uses this so pages do not need to create their own PDO connections manually. This also made it possible to handle database connection errors more consistently.
+
+`layout.php` contains the shared page structure. This means pages can use the same header, navigation, flash messages, and footer. After the visual design was stripped back to plain HTML, this file still remained useful because it kept the basic page structure consistent.
+
+`jobs.php` is the largest and most important PHP include file. It contains the ticker search functions, queue functions, SSH command construction, worker logging, manifest import, graph saving, and helper checks used by the debug pages. In practice, `jobs.php` is the PHP side of the forecasting pipeline.
+
+### Queue worker script
+
+`web/cli/process_queue.php` is not loaded by a browser. It is run by PHP from the command line. Its job is to call `process_prediction_queue($pdo)` and report whether a queued job was processed, skipped, or failed.
+
+This separation matters because browser PHP and CLI PHP are not always the same environment. On the Linux XAMPP deployment, the correct CLI binary was `/opt/lampp/bin/php`, not simply `php`. That detail caused real debugging problems, so making the worker script explicit helped clarify how the queue should be executed.
+
+The queue worker only processes one job at a time. `jobs.php` creates a lock file so two workers do not accidentally claim the same job. This was important because running multiple training jobs at once could overload the Windows training PC and corrupt the expected job state.
+
+### Debug and diagnostic scripts
+
+`healthcheck.php` checks whether PHP is running, whether sessions work, whether storage folders are writable, and whether the database can be reached. This page was useful because some errors looked like code bugs but were actually deployment problems.
+
+`yfinance_debug.php` runs the same yfinance helper used by the search page and shows the helper path, Python path, command, exit code, raw output, and parsed output. This was essential when the terminal command returned tickers but the website did not. It helped reveal issues such as the helper missing from the web root, `yfinance` missing from the Python environment, and NumPy failing under XAMPP's runtime library path.
+
+`queue_debug.php` checks the queue worker configuration. It displays the PHP CLI binary, queue worker script path, log folder writability, SSH key path, remote SSH settings, generated PowerShell command, full SSH command, configuration warnings, and worker log tail. This page became important because queue failures can happen at several layers: PHP permissions, lock files, database rows, SSH host keys, Windows authentication, PowerShell quoting, or Python training.
+
+### Overall PHP design decision
+
+The main PHP design decision was to keep each page focused on one job and move shared behaviour into include files. The visible pages handle user actions. The include files handle reusable system behaviour. The CLI worker handles long-running queue processing. The debug pages explain the deployment state.
+
+This made the website easier to reason about:
+
+- `search.php` finds symbols and previous results
+- `request_prediction.php` creates a queued job
+- `process_queue.php` runs queued work
+- `jobs.php` connects the queue to SSH, remote training, imports, and graph records
+- `view.php` shows the result
+- `asset.php` serves protected graph files
+- `healthcheck.php`, `yfinance_debug.php`, and `queue_debug.php` explain failures
+
+This phase turned the project from a set of powerful forecasting scripts into a usable web-based system. The PHP code does not replace the Python model, but it makes the model accessible through login, search, queueing, remote execution, saved graph history, and debugging tools.
+
 ## Error and Issue Log
 
 This section summarizes the most important errors or recurring pain points encountered across stages.

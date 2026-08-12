@@ -1,0 +1,31 @@
+Iteration,Duration,Objective,Test Case,Acceptance Criteria,Owner
+Sprint 0 - Setup & Smoke,1 week,"Provision test environments (web, worker, storage)","E2E-Smoke: Submit small prediction job, expect 200 and result stored",Pass if result stored in prediction_results and saved_graphs,DevOps / QA
+Sprint 0 - Setup & Smoke,1 week,Verify basic end-to-end pipeline: submit job -> worker processes -> store results,"E2E-Smoke: Submit small prediction job, expect 200 and result stored",Pass if result stored in prediction_results and saved_graphs,DevOps / QA
+Sprint 0 - Setup & Smoke,1 week,Sanity checks for authentication and API connectivity,"E2E-Smoke: Submit small prediction job, expect 200 and result stored",Pass if result stored in prediction_results and saved_graphs,DevOps / QA
+Sprint 0 - Setup & Smoke,1 week,"Provision test environments (web, worker, storage)",Auth-Smoke: Login and call protected endpoint,Pass if 200 and correct user_id association,DevOps / QA
+Sprint 0 - Setup & Smoke,1 week,Verify basic end-to-end pipeline: submit job -> worker processes -> store results,Auth-Smoke: Login and call protected endpoint,Pass if 200 and correct user_id association,DevOps / QA
+Sprint 0 - Setup & Smoke,1 week,Sanity checks for authentication and API connectivity,Auth-Smoke: Login and call protected endpoint,Pass if 200 and correct user_id association,DevOps / QA
+Iteration 1 - Core Functionality,2 weeks,Validate prediction_jobs lifecycle (queued -> running -> completed/failed),Job-Lifecycle: Queue jobs with varying params,Pass if statuses transition and timestamps recorded,Backend / ML
+Iteration 1 - Core Functionality,2 weeks,Verify model loading and checkpoint retrieval,Job-Lifecycle: Queue jobs with varying params,Pass if statuses transition and timestamps recorded,Backend / ML
+Iteration 1 - Core Functionality,2 weeks,Test feature extraction and feature_store population,Job-Lifecycle: Queue jobs with varying params,Pass if statuses transition and timestamps recorded,Backend / ML
+Iteration 1 - Core Functionality,2 weeks,Validate prediction_jobs lifecycle (queued -> running -> completed/failed),Model-Load: Load model from path/S3 for training/inference,Pass if model loads and no crash,Backend / ML
+Iteration 1 - Core Functionality,2 weeks,Verify model loading and checkpoint retrieval,Model-Load: Load model from path/S3 for training/inference,Pass if model loads and no crash,Backend / ML
+Iteration 1 - Core Functionality,2 weeks,Test feature extraction and feature_store population,Model-Load: Load model from path/S3 for training/inference,Pass if model loads and no crash,Backend / ML
+Iteration 2 - Scale & Reliability,2 weeks,Load / stress test worker with concurrent jobs,Concurrency: Submit 50-200 jobs concurrently,"Pass if no data loss, observe SLA metrics",SRE / Backend
+Iteration 2 - Scale & Reliability,2 weeks,Validate retry logic and graceful failure handling,Concurrency: Submit 50-200 jobs concurrently,"Pass if no data loss, observe SLA metrics",SRE / Backend
+Iteration 2 - Scale & Reliability,2 weeks,Test storage (S3) and DB throughput under load,Concurrency: Submit 50-200 jobs concurrently,"Pass if no data loss, observe SLA metrics",SRE / Backend
+Iteration 2 - Scale & Reliability,2 weeks,Load / stress test worker with concurrent jobs,"Retry-Logic: Simulate transient failures (network, S3) and ensure retry",Pass if jobs eventually succeed or fail with clear error,SRE / Backend
+Iteration 2 - Scale & Reliability,2 weeks,Validate retry logic and graceful failure handling,"Retry-Logic: Simulate transient failures (network, S3) and ensure retry",Pass if jobs eventually succeed or fail with clear error,SRE / Backend
+Iteration 2 - Scale & Reliability,2 weeks,Test storage (S3) and DB throughput under load,"Retry-Logic: Simulate transient failures (network, S3) and ensure retry",Pass if jobs eventually succeed or fail with clear error,SRE / Backend
+Iteration 3 - Security & Data Integrity,1 week,"Pen-test key endpoints (auth, upload)",Auth-Bypass: Attempt unauthorized access,Pass if blocked with 401/403,Security / QA
+Iteration 3 - Security & Data Integrity,1 week,Verify PII is not logged and password_hash protected,Auth-Bypass: Attempt unauthorized access,Pass if blocked with 401/403,Security / QA
+Iteration 3 - Security & Data Integrity,1 week,"Check data consistency between feature_store, prediction_results and saved_graphs",Auth-Bypass: Attempt unauthorized access,Pass if blocked with 401/403,Security / QA
+Iteration 3 - Security & Data Integrity,1 week,"Pen-test key endpoints (auth, upload)",Data-Consistency: Cross-check job -> results -> saved_graphs entries,Pass if references and payloads match,Security / QA
+Iteration 3 - Security & Data Integrity,1 week,Verify PII is not logged and password_hash protected,Data-Consistency: Cross-check job -> results -> saved_graphs entries,Pass if references and payloads match,Security / QA
+Iteration 3 - Security & Data Integrity,1 week,"Check data consistency between feature_store, prediction_results and saved_graphs",Data-Consistency: Cross-check job -> results -> saved_graphs entries,Pass if references and payloads match,Security / QA
+Iteration 4 - UX & Regression,1 week,"Validate front-end workflows (submit, view graph, download)",UI-Submit: User submits job via UI,Pass if job accepted and visible in dashboard,Frontend / QA
+Iteration 4 - UX & Regression,1 week,Run regression suite against core APIs,UI-Submit: User submits job via UI,Pass if job accepted and visible in dashboard,Frontend / QA
+Iteration 4 - UX & Regression,1 week,User acceptance: sample users exercise main flows,UI-Submit: User submits job via UI,Pass if job accepted and visible in dashboard,Frontend / QA
+Iteration 4 - UX & Regression,1 week,"Validate front-end workflows (submit, view graph, download)",Regression-Full: Run full automated regression,Pass if no critical regressions,Frontend / QA
+Iteration 4 - UX & Regression,1 week,Run regression suite against core APIs,Regression-Full: Run full automated regression,Pass if no critical regressions,Frontend / QA
+Iteration 4 - UX & Regression,1 week,User acceptance: sample users exercise main flows,Regression-Full: Run full automated regression,Pass if no critical regressions,Frontend / QA

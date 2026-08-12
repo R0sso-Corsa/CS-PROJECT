@@ -1,0 +1,22 @@
+{
+  "job_id": 41,
+  "ticker": "ETH-USD",
+  "job_dir": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\eth-usd\\job_41",
+  "summary": "Remote training for ETH-USD completed successfully. Graph assets were generated and are ready for import.",
+  "stats": {
+    "rmse": 330.0113696801857,
+    "mae": 275.8958909090126,
+    "future_days": 30.0,
+    "residual_mean": 271.3708796198978,
+    "residual_std": 188.07502361801446
+  },
+  "files": {
+    "model": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\eth-usd\\job_41\\models\\ETH-USD_model_cpp_20260427_204929.pt",
+    "predictions_csv": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\eth-usd\\job_41\\predictions\\ETH-USD_predictions_cpp_20260427_204929.csv",
+    "forecast_csv": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\eth-usd\\job_41\\forecasts\\ETH-USD_future_30d_cpp_20260427_204929.csv",
+    "summary_plot": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\eth-usd\\job_41\\plots\\summary.png",
+    "detail_plot": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\eth-usd\\job_41\\plots\\detail.png",
+    "residuals_plot": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\eth-usd\\job_41\\plots\\residuals.png",
+    "training_log": "C:\\Users\\paron\\Desktop\\Dev\\CS_PROJECT\\REWRITE\\separated\\outputs\\web_jobs\\eth-usd\\job_41\\training.log"
+  }
+}

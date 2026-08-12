@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" modified="2026-05-01T12:00:00.000Z" agent="5.0" version="20.0.0">
+  <diagram id="gui-workflow" name="Local GUI Workflow">
+    <mxGraphModel dx="1200" dy="1600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- GUI Flow -->
+        <mxCell id="n1" value="Launch gui_main.py&#10;Tkinter Window" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E3F2FD;strokeColor#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="30" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n2" value="User Selects Stock Ticker&#10;Dropdown List" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E3F2FD;strokeColor#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="120" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n3" value="Choose Device:&#10;GPU or CPU?" style="rhombus;whiteSpace=wrap;html=1;fillColor#FFF3E0;strokeColor#F57C00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="115" y="210" width="120" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n4" value="Select GPU&#10;NVIDIA or ROCm" style="rounded=0;whiteSpace=wrap;html=1;fillColor#F3E5F5;strokeColor#7B1FA2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="300" y="220" width="110" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n5" value="Select CPU&#10;Single/Multi Core" style="rounded=0;whiteSpace=wrap;html=1;fillColor#F3E5F5;strokeColor#7B1FA2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="500" y="220" width="110" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n6" value="Configure Parameters&#10;Epochs, Learning Rate&#10;Batch Size" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E3F2FD;strokeColor#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="330" width="150" height="70" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n7" value="Preview Settings&#10;Ticker, Device, Params" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E3F2FD;strokeColor#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="440" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n8" value="Start Training?" style="rhombus;whiteSpace=wrap;html=1;fillColor#FFF3E0;strokeColor#F57C00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="115" y="530" width="120" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n9" value="Validate Ticker Data&#10;Check yfinance" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E8F5E9;strokeColor#388E3C;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="650" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n10" value="Data Available?" style="rhombus;whiteSpace=wrap;html=1;fillColor#FFF3E0;strokeColor#F57C00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="115" y="740" width="120" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n11" value="Show Error&#10;Invalid Ticker" style="rounded=0;whiteSpace=wrap;html=1;fillColor#FFEBEE;strokeColor#C62828;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="300" y="750" width="110" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n12" value="Disable GUI Controls&#10;Show Progress Bar" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E3F2FD;strokeColor#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="860" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n13" value="Call pytorch_train_cpp.py&#10;subprocess.run" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E8F5E9;strokeColor#388E3C;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="960" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n14" value="Monitor Training&#10;Capture stdout" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E3F2FD;strokeColor#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1060" width="150" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n15" value="Update Progress Bar&#10;Epoch count" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E3F2FD;strokeColor#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1140" width="150" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n16" value="Training Running?" style="rhombus;whiteSpace=wrap;html=1;fillColor#FFF3E0;strokeColor#F57C00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="115" y="1220" width="120" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n17" value="Training Success?" style="rhombus;whiteSpace=wrap;html=1;fillColor#FFF3E0;strokeColor#F57C00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="115" y="1340" width="120" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n18" value="Show Error Dialog" style="rounded=0;whiteSpace=wrap;html=1;fillColor#FFEBEE;strokeColor#C62828;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="300" y="1350" width="110" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n19" value="Enable GUI Controls" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E3F2FD;strokeColor#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="300" y="1450" width="110" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n20" value="Load Output Files&#10;predictions.csv" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E8F5E9;strokeColor#388E3C;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1480" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="n21" value="Display Forecast +&#10;Confidence Intervals" style="rounded=0;whiteSpace=wrap;html=1;fillColor#E3F2FD;strokeColor#1976D2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1590" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Edges -->
+        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n1" target="n2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n2" target="n3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="GPU" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#F57C00;strokeWidth=2;" edge="1" parent="1" source="n3" target="n4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="CPU" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#F57C00;strokeWidth=2;" edge="1" parent="1" source="n3" target="n5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#F57C00;strokeWidth=2;" edge="1" parent="1" source="n4" target="n6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#F57C00;strokeWidth=2;" edge="1" parent="1" source="n5" target="n6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n6" target="n7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n7" target="n8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#C62828;strokeWidth=2;" edge="1" parent="1" source="n8" target="n2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#388E3C;strokeWidth=2;" edge="1" parent="1" source="n8" target="n9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n9" target="n10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#C62828;strokeWidth=2;" edge="1" parent="1" source="n10" target="n11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#C62828;strokeWidth=2;" edge="1" parent="1" source="n11" target="n2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#388E3C;strokeWidth=2;" edge="1" parent="1" source="n10" target="n12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n12" target="n13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n13" target="n14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n14" target="n15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#F57C00;strokeWidth=2;" edge="1" parent="1" source="n15" target="n16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e19" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#388E3C;strokeWidth=2;" edge="1" parent="1" source="n16" target="n17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#F57C00;strokeWidth=2;" edge="1" parent="1" source="n16" target="n14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e21" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#C62828;strokeWidth=2;" edge="1" parent="1" source="n17" target="n18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e22" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#C62828;strokeWidth=2;" edge="1" parent="1" source="n18" target="n19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e23" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#C62828;strokeWidth=2;" edge="1" parent="1" source="n19" target="n2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e24" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#388E3C;strokeWidth=2;" edge="1" parent="1" source="n17" target="n20">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e25" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor#666666;strokeWidth=2;" edge="1" parent="1" source="n20" target="n21">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

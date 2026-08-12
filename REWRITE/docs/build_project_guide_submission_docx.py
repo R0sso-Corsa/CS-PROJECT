@@ -31,7 +31,7 @@ def collect_snippets(repo_root: Path) -> dict[str, str]:
     p9t = rewrite_root / "separated" / "pytorch_train_cpp.py"
     p9p = rewrite_root / "separated" / "pytorch_plot_cpp.py"
 
-    web_html = repo_root / "web" / "new.html"
+    web_login = repo_root / "web" / "login.php"
     web_js = repo_root / "web" / "scripts.js"
     gui_main = repo_root / "gui_main.py"
     users_sql = repo_root / "data" / "root" / "sql" / "USERS.sql"
@@ -87,6 +87,16 @@ def collect_snippets(repo_root: Path) -> dict[str, str]:
             "SCRIPT_DIR = Path(__file__).resolve().parent",
             "    return artifact_dirs",
         ),
+        "cpp_config_model": extract_block(
+            p9t,
+            "@dataclass",
+            "        return self.fc(out)",
+        ),
+        "cpp_sequence_builders": extract_block(
+            p9t,
+            "def build_sequences(values, prediction_days):",
+            "        return np.asarray(xs, dtype=np.float32)",
+        ),
         "cpp_add_features": extract_block(
             p9t,
             "def add_features(df):",
@@ -102,20 +112,60 @@ def collect_snippets(repo_root: Path) -> dict[str, str]:
             "    if use_compile:",
             '            print(f"torch.compile skipped: {e}")',
         ),
+        "cpp_main_cli_data": extract_block(
+            p9t,
+            "def main():",
+            '        raise RuntimeError("Insufficient data to create training sequences.")',
+        ),
+        "cpp_training_loop": extract_block(
+            p9t,
+            "    t0 = time.time()",
+            '    print(f"Training time: {train_seconds:.2f}s")',
+        ),
+        "cpp_eval_save": extract_block(
+            p9t,
+            "    # Quick evaluation on recent segment.",
+            '    print(f"Saved predictions: {pred_path}")',
+        ),
+        "cpp_forecast_save": extract_block(
+            p9t,
+            '    print(f"\\n{\'=\' * 60}")',
+            '        f"Forecast day {cfg.future_day}: ${final_fc:.2f}  ({pct:+.2f}%)"',
+        ),
         "plot_discovery": extract_block(
             p9p,
             'DEFAULT_PREDICTIONS_DIR = DEFAULT_OUTPUT_ROOT / "predictions"',
             "    return max(candidates, key=os.path.getmtime)",
         ),
+        "plot_cli_validation": extract_block(
+            p9p,
+            "def main():",
+            '    pred_df = pred_df.sort_values("Date").reset_index(drop=True)',
+        ),
+        "plot_context_future": extract_block(
+            p9p,
+            "    # Re-download OHLC data only for plotting context.",
+            "            future_predictions_upper = future_p",
+        ),
+        "plot_figure_residuals": extract_block(
+            p9p,
+            '    plt.style.use("dark_background")',
+            '    fig.canvas.mpl_connect("motion_notify_event", motion_hover)',
+        ),
+        "plot_forecast_window": extract_block(
+            p9p,
+            "    DEFAULT_PLOTS_DIR.mkdir(parents=True, exist_ok=True)",
+            "    plt.show()",
+        ),
         "web_login_form": extract_block(
-            web_html,
-            '<form id="loginForm" onsubmit="event.preventDefault(); validateLogin();">',
+            web_login,
+            '<form method="post">',
             "</form>",
         ),
         "web_validate_login": extract_block(
             web_js,
-            "function validateLogin() {",
-            "function toggleSlowIframe() {",
+            "function sanitizeFormData(form) {",
+            "const searchInput = document.querySelector",
         ),
         "gui_create_widgets": extract_block(
             gui_main,
@@ -149,7 +199,7 @@ def add_manual_contents(doc: DocxBuilder) -> None:
         "12. Algorithms, IPO Reasoning and Pipelining",
         "13. User Interface Design and Wireframe Discussion",
         "14. Key Variables, Data Structures and Validation",
-        "15. Project Diary and Iterative Implementation",
+        "15. Implementation of the Main Training and Plotting Scripts",
         "16. Iterative Test Plan",
         "17. Post-Development Test Plan",
         "18. Evaluation and Final Reflection",
@@ -260,7 +310,7 @@ def build_report() -> DocxBuilder:
 
         A second major stakeholder is the developer, who is also effectively the maintainer, tester and system integrator. The repository makes it clear that maintainability became increasingly important as the project grew. Decisions such as separating plotting from training, improving logging and standardising output folders directly serve this stakeholder by making the project easier to continue understanding and extending.
 
-        A third stakeholder is the teacher or assessor. The project guide itself demonstrates that the solution must be explainable and justifiable, not merely runnable. For this stakeholder, the value of the system depends on evidence of decomposition, algorithm design, appropriate libraries, testing and iterative improvement. This is why a detailed report and dated implementation diary matter as much as the final model output.
+        A third stakeholder is the teacher or assessor. The project guide itself demonstrates that the solution must be explainable and justifiable, not merely runnable. For this stakeholder, the value of the system depends on evidence of decomposition, algorithm design, appropriate libraries, testing and iterative improvement. This is why a detailed report and dated implementation evidence matter as much as the final model output.
 
         A fourth stakeholder is the tester or peer reviewer. Someone other than the developer may need to operate the GUI, inspect charts, interpret logs or comment on usability. The existence of `gui_main.py` is especially relevant here because it lowers the barrier to using the project without editing internal source code directly.
         """
@@ -429,228 +479,197 @@ def build_report() -> DocxBuilder:
     )
 
     doc.add_page_break()
-    doc.add_heading("Project Diary and Iterative Implementation", level=1)
+    doc.add_heading("Implementation of the Main Training and Plotting Scripts", level=1)
     doc.add_paragraphs(
         """
-        The project diary is the strongest part of the report because it demonstrates how the solution evolved through evidence rather than guesswork. The repository preserves early learning-path files, later refactors and enough dated history to build a realistic timeline. This makes it possible to show not only what the current code does, but also why each stage existed and what technical pressure produced the next rewrite.
+        This implementation section focuses on the final main code rather than a timeline-style account. The two most important scripts are `pytorch_train_cpp.py` and `pytorch_plot_cpp.py`. The training script is responsible for collecting historical market data, engineering features, building the LSTM model, training it and saving reusable output files. The plotting script is responsible for finding those saved files and turning them into readable charts.
+
+        Separating the scripts was an important design decision. Earlier versions of the project combined training and plotting in one large workflow, which made small visual changes expensive because the model could need to be trained again. The final design avoids that problem by making training produce stable artifacts, then allowing plotting to run as a separate stage. This makes the project easier to test, easier to explain and easier to improve.
+
+        The decision came from observing the practical problems in the code. Training is slow and hardware-dependent, while plotting is quick and mostly presentation-focused. Keeping them together meant that two very different jobs were sharing the same file and runtime. Splitting them gave each script a clearer purpose and made the whole project more maintainable.
         """
     )
 
-    doc.add_heading("Phase A: Original Concept and Prototype Direction", level=2)
-    add_timeline(
-        doc,
-        "Dates",
-        """
-        The website and credential prototypes are consistent with the earlier draft document and with repository files that appear by December 2025. The draw.io system decomposition, prototype HTML/JavaScript files and SQL schema show that the earliest project direction was active by the end of 2025.
-        """,
-    )
+    doc.add_heading("Training Script: Output Structure and Artifact Decisions", level=2)
     doc.add_paragraphs(
         """
-        The earliest stage was broad in ambition. The developer was not only trying to predict prices. They were imagining a joined-up platform in which users could log in, revisit information and benefit from AI-assisted charts. This explains the presence of website prototypes and database design even though the final strongest deliverable is the forecasting pipeline.
+        The training script saves outputs into predictable folders. This is not just an organisational choice; it is what allows the plotting script and the website to find the correct result later. The model does not only print values to the terminal. It creates files that can be reused by other parts of the system.
 
-        This stage is valuable because it identified the software problem in the right broad terms: user interaction, data persistence, market data presentation and predictive support. It is also valuable because it reveals limitations early. Front-end validation and hardcoded credentials are acceptable for exploration, but not for final secure deployment. The project learned from this by narrowing its strongest implementation effort toward the analytical engine.
-        """
-    )
-
-    doc.add_heading("Phase B: TensorFlow Basics", level=2)
-    add_timeline(
-        doc,
-        "Dates",
-        """
-        `ai_predict.py` and related TensorFlow-basics files carry file timestamps from 12 December 2025, placing the earliest concrete ML implementation in mid-December 2025.
-        """,
-    )
-    doc.add_paragraphs(
-        """
-        The first machine-learning implementation used TensorFlow/Keras and aimed to prove that an LSTM could operate on financial history at all. This close-only baseline was deliberately simple: obtain price history, scale it, build sequence windows, train a stacked recurrent model and compare actual against predicted values on a chart.
-
-        Although simple, this phase established several ideas that survived the entire project: lookback windows, external data retrieval with `yfinance`, visual comparison between prediction and reality, and the basic idea that market forecasting could be automated through a repeated computational pipeline. These concepts became the backbone of every later rewrite.
-
-        The phase also exposed immediate weaknesses. Using only close price limited the model's view of market structure. The script was monolithic, with downloading, training, evaluation and plotting all tangled together. These weaknesses did not invalidate the phase; they created the next set of design questions.
-        """
-    )
-    doc.add_heading("Code Exhibit: Close-Only TensorFlow Baseline", level=3)
-    doc.add_code_block(snippets["tf_close_only"])
-
-    doc.add_heading("Phase C: Dynamic Dropout and Better Training Control", level=2)
-    add_timeline(
-        doc,
-        "Dates",
-        """
-        The stacked-LSTM and dynamic-dropout learning-path files share December 2025 creation times, indicating that the latter part of the TensorFlow learning stage focused on improving training behaviour rather than merely proving that a model could run.
-        """,
-    )
-    doc.add_paragraphs(
-        """
-        Once the baseline worked, the project became more interested in how training was controlled. Static dropout regularised the network, but it did so with the same intensity throughout the training process even though early and late epochs benefit from different levels of regularisation. The dynamic-dropout stage addressed that weakness directly.
-
-        This stage is important because it shows the developer beginning to reason about optimisation quality rather than only raw functionality. The system was no longer just being asked to produce a curve. It was being asked to learn in a more disciplined and observable way. TensorBoard logging and callback-driven dropout updates are evidence of that shift.
+        This decision fixes an important development issue: output sprawl. When a project creates charts, prediction CSV files, forecast CSV files and model results, it becomes difficult to know which file belongs to which run. The final script addresses this by standardising where outputs go and by using clear names for prediction and future-forecast files.
         """
     )
     add_comparison(
         doc,
-        "Code Exhibit: Static Regularisation Becomes Dynamic",
-        "Earlier Static Baseline",
-        snippets["tf_close_only"],
-        "Dynamic Dropout Callback",
-        snippets["dynamic_dropout"],
-        """
-        The significance of this comparison is conceptual as much as technical. In the earlier code, dropout is just part of the architecture definition. In the later code, dropout becomes something the training loop actively manages over time. That is a meaningful increase in sophistication and a clear example of iterative implementation.
-        """,
-    )
-
-    doc.add_heading("Phase D: Extended TensorFlow Forecasting", level=2)
-    add_timeline(
-        doc,
-        "Dates",
-        """
-        `future-Eric.py` has a last write date of 4 January 2026, placing the extended TensorFlow phase at the turn of the year as the project moved from proof of concept into richer modelling.
-        """,
-    )
-    doc.add_paragraphs(
-        """
-        This phase marks the moment where the project stopped being a simple close-price predictor and started becoming a richer forecasting system. Additional derived features, stronger preprocessing logic and better training control all appear here. The developer was beginning to understand that realistic market modelling requires more context than a single line of historical closes.
-
-        It is also the phase where the cost of complexity began to rise. TensorFlow could still execute the ideas, but the project was increasingly pushing toward custom behaviour and more explicit control. That is why this phase should be read not only as a technical improvement but as preparation for the later migration to PyTorch.
-        """
-    )
-    add_comparison(
-        doc,
-        "Code Exhibit: Feature Expansion in TensorFlow",
-        "Close-Only Baseline",
-        snippets["tf_close_only"],
-        "Multi-Feature TensorFlow Preparation",
-        snippets["tf_features"],
-        """
-        This comparison captures one of the most important project-wide shifts. The model is no longer starved of context. Instead, the system deliberately constructs trend, momentum and timing information before training begins. That single change greatly improves the credibility of the overall analytical approach.
-        """,
-    )
-
-    doc.add_heading("Phase E: PyTorch Transition", level=2)
-    add_timeline(
-        doc,
-        "Dates",
-        """
-        `future-eric-pytorch.py` has a last write date of 26 January 2026, and formal git milestones around PyTorch and Optuna appear from 22 February 2026 onward. This suggests the transition began in late January and became central by late February 2026.
-        """,
-    )
-    doc.add_paragraphs(
-        """
-        The migration to PyTorch was a genuine turning point. The developer needed more explicit control over devices, clearer forward-pass logic and a framework that made unusual training and inference behaviour easier to express. The move was therefore justified by practical engineering pressure, not just by preference.
-
-        PyTorch also aligned better with the way the project had begun to develop. Once experimentation became deeper and hardware issues more visible, an explicit `nn.Module`-based approach made the code easier to reason about. Even where early PyTorch files still carried ideas from the TensorFlow era, the rewrite created room for later stability improvements, hardware workarounds and richer modelling.
-        """
-    )
-    doc.add_heading("Code Exhibit: Initial PyTorch Rewrite", level=3)
-    doc.add_code_block(snippets["pytorch_transition_model"])
-
-    doc.add_heading("Phase F: PyTorch Stable Core", level=2)
-    add_timeline(
-        doc,
-        "Dates",
-        """
-        `pytorch_fixed.py` was created on 27 March 2026 and refined further into early April 2026, representing the point where the PyTorch branch became a stable baseline rather than only a migration experiment.
-        """,
-    )
-    doc.add_paragraphs(
-        """
-        The stable-core phase focused on robustness. Bidirectional layers, Huber loss, gradient clipping and validation-aware learning-rate scheduling all show that the project was becoming more concerned with dependable training behaviour. This is the phase where the repository starts to feel less like a direct port and more like a deliberate PyTorch-native implementation.
-
-        That matters because successful forecasting software is not only about architectural ambition. It is also about avoiding fragility. Recurrent models can become unstable, and financial data contains outliers and sharp moves. The stable-core stage addressed those realities directly.
-        """
-    )
-    add_comparison(
-        doc,
-        "Code Exhibit: Stable Core Modelling and Training",
-        "Bidirectional Stable Model",
-        snippets["pytorch_stable_model"],
-        "Robust Training Controls",
-        snippets["pytorch_stable_training"],
-        """
-        Together, these excerpts show the codebase entering a mature optimisation mindset. Architecture and training control are designed together, and the system begins defending itself against instability rather than merely hoping it does not occur.
-        """,
-    )
-
-    doc.add_heading("Phase G: Full PyTorch Pipeline and Rich Forecasting", level=2)
-    add_timeline(
-        doc,
-        "Dates",
-        """
-        Major git milestones appear on 16 March 2026, 18 March 2026, 24 March 2026, 27 March 2026, 29 March 2026, 7 April 2026 and 9 April 2026. This is the densest development period in the repository and corresponds to the growth of `pytorch_plotted.py` into a full-feature pipeline.
-        """,
-    )
-    doc.add_paragraphs(
-        """
-        `pytorch_plotted.py` is the high point of the monolithic era. It combines market-data retrieval, technical indicators, interactive ticker selection, backend management, logging, model training and chart rendering in one very capable file. This script matters because it concentrates a huge amount of project knowledge in one place.
-
-        It also contains some of the most important engineering lessons in the repository. Hardware control becomes explicit rather than assumed. Backend settings are adjusted for real development-machine constraints. Mixed runtime choices and logging concerns become first-class parts of the code rather than background details.
-
-        The most memorable improvement in this phase is the solution to the smooth-forecast problem. Earlier future trajectories looked too clean to be believable. By using Monte Carlo dropout during inference, keeping dropout active and separating the visible path from the confidence-band logic, the project produced outputs that were more honest and more visually plausible.
-
-        At the same time, this phase created the pressure that led to the next architectural shift. The script became so capable that it also became expensive to maintain. Training, plotting and runtime configuration all lived together. Success was creating complexity faster than the monolithic structure could comfortably absorb.
-        """
-    )
-    add_comparison(
-        doc,
-        "Code Exhibit: Hardware-Aware Full Pipeline",
-        "Backend and Runtime Controls",
-        snippets["pytorch_backend"],
-        "Stochastic Monte Carlo Inference",
-        snippets["pytorch_mc"],
-        """
-        These excerpts show why the file was both impressive and difficult to evolve. It contained deep knowledge about hardware behaviour and custom forecasting logic in the same operational space. That concentration of capability is one reason the file was powerful, and also one reason separation of concerns became the next sensible step.
-        """,
-    )
-
-    doc.add_heading("Phase H: Experimental Branches", level=2)
-    add_timeline(
-        doc,
-        "Dates",
-        """
-        `pytorch_additional.py` carries a creation date of 24 March 2026 and evolved through the late-March and early-April period as a parallel experimentation branch.
-        """,
-    )
-    doc.add_paragraphs(
-        """
-        The experimental PyTorch branch shows that the project had reached a level of confidence where it could test more ambitious ideas such as attention mechanisms, broader feature sets and deeper architectural variation. This is important evidence of technical curiosity and iterative ambition.
-
-        These experiments also sharpened the case for modular architecture. The more ambitious the models became, the more costly it was to keep everything inside a single dense operational script. The experimental files therefore add value twice: they record serious exploration, and they also explain why the final architecture needed cleaner boundaries.
-        """
-    )
-    doc.add_heading("Code Exhibit: Attention-Oriented Experimental Model", level=3)
-    doc.add_code_block(snippets["attention_model"])
-
-    doc.add_heading("Phase I: Separated Training and Plotting Pipeline", level=2)
-    add_timeline(
-        doc,
-        "Dates",
-        """
-        `pytorch_train_cpp.py` and `pytorch_plot_cpp.py` were created on 9 April 2026, and commit `f9efa69` on 10 April 2026 reorganised the project and standardised the new output structure.
-        """,
-    )
-    doc.add_paragraphs(
-        """
-        The separated `cpp` pipeline is the most important architectural improvement in the repository. The training script became responsible for data ingestion, feature engineering, model work and artifact creation. The plotting script became responsible for discovering those artifacts and rendering charts. This separation improved maintainability, reproducibility and iteration speed at the same time.
-
-        The new architecture also distilled lessons learned in earlier phases. It flattened `MultiIndex` columns, organised outputs, introduced more efficient window generation and added optional compilation support. These decisions are not isolated refinements. They are the accumulated response to earlier pain points around fragility, runtime cost and output sprawl.
-        """
-    )
-    add_comparison(
-        doc,
-        "Code Exhibit: Separated Pipeline Infrastructure",
-        "Stable Artifact Paths",
+        "Code Exhibit: Training Artifacts and Plot-Side Discovery",
+        "Training Script Output Paths",
         snippets["cpp_output_paths"],
-        "Plot-Side Artifact Discovery",
+        "Plotting Script Discovery Logic",
         snippets["plot_discovery"],
         """
-        These excerpts capture the essence of the final architecture. Results are stored intentionally and rediscovered intentionally. The system no longer assumes that heavy training must be rerun just to change visual output. That is a major gain in usability and engineering quality.
+        These snippets show the link between the two main scripts. The training code writes results in a known structure, and the plotting code searches that structure instead of relying on manual file selection. This makes the final project more reliable because the user does not have to remember file names after each run.
         """,
     )
-    doc.add_heading("Code Exhibit: Optional Throughput Optimisation", level=3)
+
+    doc.add_heading("Training Script: Feature Engineering", level=2)
+    doc.add_paragraphs(
+        """
+        The training script does not use only the closing price. It creates additional indicators so that the model has more information about the market's behaviour. This was a justified decision because financial movement depends on more than one value. Trend, momentum and volatility all matter when trying to model price movement.
+
+        The final feature-engineering approach was chosen because the earlier close-price-only approach was too limited. A close-only model can learn broad movement, but it has less context for sudden changes or repeated patterns. Adding indicators gives the model a richer input while still keeping the data understandable enough to explain at A-level standard.
+        """
+    )
+    doc.add_heading("Code Exhibit: Feature Engineering in the Training Script", level=3)
+    doc.add_code_block(snippets["cpp_add_features"])
+
+    doc.add_paragraphs(
+        """
+        A key error class in this part of development was missing or unusable data after rolling calculations. Technical indicators often create empty values at the start of a dataset because they need a number of previous days before they can be calculated. The fix was to make preprocessing clean these values before the model received the data. This prevents the training stage from failing later with confusing tensor or scaling errors.
+        """
+    )
+
+    doc.add_heading("Training Script: Model Training and Stability", level=2)
+    doc.add_paragraphs(
+        """
+        The model uses recurrent neural-network logic because the data is sequential. Stock and cryptocurrency prices are ordered by time, so the model needs to learn from windows of previous values rather than treating every row as unrelated. The LSTM design was chosen because it is suitable for sequence data and can preserve information across a lookback window.
+
+        The training script also includes stability decisions. Financial data can contain sharp changes, so a fragile model can produce unstable training loss or unrealistic predictions. The use of stronger training controls, validation checks and controlled output generation makes the script more dependable than a basic demonstration model.
+        """
+    )
+    doc.add_heading("Code Exhibit: Training-Time Optimisation Support", level=3)
     doc.add_code_block(snippets["cpp_compile"])
     doc.add_paragraphs(
         """
-        The compile hook is a small but telling sign of maturity. The project now treats performance as an engineering concern while still degrading gracefully when that optimisation path is not suitable. That is an appropriate end-state attitude for a codebase that has already had to negotiate real hardware-specific constraints.
+        Optional compilation was added as a performance decision rather than as a requirement. This is important because the project had to work on real hardware where GPU, CPU and library support could vary. The script therefore tries to improve speed where possible, but it is not designed to collapse if that optimisation is unavailable.
+        """
+    )
+
+    doc.add_heading("Training Script: Future Forecasting and Uncertainty", level=2)
+    doc.add_paragraphs(
+        """
+        The future-forecasting section is one of the most important parts of the implementation. A single future line can look misleadingly confident, especially in a market where prices can change quickly. The script therefore uses repeated forecasting runs to support uncertainty estimates. This makes the output more honest because it shows that the model is not claiming perfect certainty.
+
+        This design decision came from a visible output problem: forecasts could appear too smooth and too definite. The fix was not simply to make the chart look more dramatic. The better solution was to use repeated model passes so the final output could include a range of possible outcomes. That makes the graph more useful to a user because it communicates risk as well as direction.
+        """
+    )
+    doc.add_heading("Code Exhibit: Monte Carlo Forecast Rollout", level=3)
+    doc.add_code_block(snippets["cpp_rollout"])
+
+    doc.add_heading("Plotting Script: Reusing Training Outputs", level=2)
+    doc.add_paragraphs(
+        """
+        The plotting script was created because graph generation should not depend on retraining. Once the training script has produced prediction and future-forecast files, the plotting script can load them and create the visual output. This makes the system quicker to use and easier to debug.
+
+        The main decision in the plotting script is artifact discovery. Instead of asking the user to manually type every file path, the script searches for the latest suitable output. This reduces user error and makes the script work better as part of the larger website workflow.
+        """
+    )
+    doc.add_heading("Code Exhibit: Plotting Script File Discovery", level=3)
+    doc.add_code_block(snippets["plot_discovery"])
+
+    doc.add_heading("Plotting Script: Validation and Error Handling", level=2)
+    doc.add_paragraphs(
+        """
+        The plotting stage also needed validation. A chart can only be useful if the input CSV files contain the expected columns and if the dates and predictions line up correctly. During development, errors such as missing files, incorrect output paths and mismatched expectations between scripts were found. The fix was to make the pipeline use consistent file names and to make the plotting script deliberately search the output folders created by training.
+
+        This is why the training and plotting scripts should be understood together. The training script creates a contract by saving specific artifacts. The plotting script follows that contract by searching for and reading those artifacts. The project became more reliable once both sides of that contract were made explicit.
+        """
+    )
+
+    doc.add_heading("Detailed Code Walkthrough: Training Script", level=2)
+    doc.add_paragraphs(
+        """
+        The following excerpts document the training script in the order it actually runs. This keeps the implementation section focused on the final main code while still giving enough technical evidence to explain the design decisions. The code begins by centralising configuration, then defines the dataset adapter and LSTM model. Centralising the settings was useful because the same script can be driven from the command line, the website queue and direct testing without changing constants in several places.
+        """
+    )
+    doc.add_heading("Code Exhibit: Configuration, Dataset Adapter and LSTM Model", level=3)
+    doc.add_code_block(snippets["cpp_config_model"])
+
+    doc.add_paragraphs(
+        """
+        Sequence construction is another important part of the implementation. The model cannot train on isolated rows because the task is time-series forecasting. Each sample must contain a lookback window and a target value. The script uses NumPy's sliding-window approach where possible because it is faster than building every window manually in Python, but it still includes a fallback route so the code remains portable.
+        """
+    )
+    doc.add_heading("Code Exhibit: Sequence Construction and Test Windows", level=3)
+    doc.add_code_block(snippets["cpp_sequence_builders"])
+
+    doc.add_paragraphs(
+        """
+        The command-line and data-loading section shows how the script becomes reusable. The user can change ticker, device, epochs, batch size, lookback length, forecast horizon and Monte Carlo runs without editing the source. This was a deliberate improvement because the same training script needed to support quick tests and longer final runs.
+        """
+    )
+    doc.add_heading("Code Exhibit: CLI Arguments, Device Selection and Data Preparation", level=3)
+    doc.add_code_block(snippets["cpp_main_cli_data"])
+
+    doc.add_paragraphs(
+        """
+        The training loop applies dynamic dropout and reports progress across epochs and batches. This is a practical choice because it gives the developer feedback during long runs. It also avoids a hidden training process where the user cannot tell whether the model is progressing, stuck or failing.
+        """
+    )
+    doc.add_heading("Code Exhibit: Training Loop", level=3)
+    doc.add_code_block(snippets["cpp_training_loop"])
+
+    doc.add_paragraphs(
+        """
+        After training, the script evaluates recent predictions and saves the model and prediction CSV. This is the point where the training script hands information to the rest of the project. Saving predictions as CSV was chosen because it is easy for Python, PHP and spreadsheet tools to read, which makes the output useful beyond a single script run.
+        """
+    )
+    doc.add_heading("Code Exhibit: Evaluation and Prediction Export", level=3)
+    doc.add_code_block(snippets["cpp_eval_save"])
+
+    doc.add_paragraphs(
+        """
+        The forecast export completes the training side of the implementation. It writes future dates, predicted prices and confidence interval values. This was necessary because the plotting script needs more than just a line of predictions; it also needs uncertainty data if the final chart is going to show how confident or uncertain the forecast is.
+        """
+    )
+    doc.add_heading("Code Exhibit: Forecast Export", level=3)
+    doc.add_code_block(snippets["cpp_forecast_save"])
+
+    doc.add_heading("Detailed Code Walkthrough: Plotting Script", level=2)
+    doc.add_paragraphs(
+        """
+        The plotting script starts with argument parsing and validation. This mirrors the training script's design: the user can pass paths manually, but the script can also find the newest suitable output automatically. This supports both manual debugging and website-driven operation.
+        """
+    )
+    doc.add_heading("Code Exhibit: Plot CLI and Prediction CSV Validation", level=3)
+    doc.add_code_block(snippets["plot_cli_validation"])
+
+    doc.add_paragraphs(
+        """
+        The plotting script then downloads fresh market context and rebuilds indicators for the chart. Importantly, this does not retrain the model or change the saved predictions. It only gives the graph enough historical context to be understandable. This separation is one of the main benefits of the final implementation.
+        """
+    )
+    doc.add_heading("Code Exhibit: Plot Context and Future CSV Loading", level=3)
+    doc.add_code_block(snippets["plot_context_future"])
+
+    doc.add_paragraphs(
+        """
+        The main figure combines candlesticks, model predictions, future forecasts, confidence intervals and residuals. The residual plot was added because a graph should not only show the forecast line; it should also reveal where the model was wrong. This makes the output more honest and more useful for evaluation.
+        """
+    )
+    doc.add_heading("Code Exhibit: Main Plot, Confidence Band and Residuals", level=3)
+    doc.add_code_block(snippets["plot_figure_residuals"])
+
+    doc.add_paragraphs(
+        """
+        The second plotting window focuses on the future forecast. It separates price direction from the width of the confidence interval. This is useful because uncertainty can grow or shrink across the forecast horizon, and that information would be harder to see if everything were compressed into a single line chart.
+        """
+    )
+    doc.add_heading("Code Exhibit: Forecast Detail Window and Saved Images", level=3)
+    doc.add_code_block(snippets["plot_forecast_window"])
+
+    doc.add_heading("Main Implementation Errors and Fixes", level=2)
+    doc.add_paragraphs(
+        """
+        Several errors shaped the final implementation. One common problem was missing helper files or mismatched paths when the website tried to call Python scripts. The fix was to standardise where scripts live and to make debug pages show the exact helper path being used. This made failures easier to trace because the project could show whether the file existed, whether Python could execute it and which command was being run.
+
+        Another problem was Python environment mismatch. The terminal could sometimes run a command successfully while the website failed, because the web server was using a different Python interpreter or a different set of installed packages. The fix was to point the website configuration at the correct virtual environment and to expose the configured Python path in the debug output.
+
+        A further issue came from native package compatibility. When `yfinance` loaded through the XAMPP environment, NumPy could fail because XAMPP's bundled `libstdc++` was older than the version required by the installed NumPy wheel. The practical fix was to avoid relying on the wrong runtime library path and to use the Python environment that could import the finance packages correctly.
+
+        Queue execution introduced a separate set of errors. The web server user did not always have permission to write queue logs or lock files, which meant the worker could crash before doing real work. The fix was to correct ownership and permissions for the storage folders used by the queue. This mattered because the model-training workflow depends on background jobs rather than only manual terminal commands.
+
+        Remote training also exposed SSH configuration issues. The project encountered missing host keys, strict host-key checking failures, password prompts, wrong key paths and private-key permission errors. These were fixed by using a dedicated key for the web queue, placing it where the web-server user could read it, setting safe permissions and creating a known-hosts file for the Windows training machine. This turned remote execution from an interactive terminal-only process into something the website could run non-interactively.
+
+        These errors are included because they explain why the final implementation looks the way it does. The project did not simply add code until it worked once. It had to make the code runnable from the website, from the queue worker and across two machines. That is why path handling, artifact naming, permission checks and debug pages became important implementation details.
         """
     )
 

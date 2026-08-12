@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  dashboard:
+    build:
+      context: ..
+      dockerfile: enterprise/docker/Dockerfile
+    ports:
+      - "8501:8501"
+    volumes:
+      - ../data:/app/data
+      - ../models:/app/models
+      - ../logs:/app/logs
+      - ./config:/app/config
+    environment:
+      - ENT_models.device_auto=true
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ..
+      dockerfile: enterprise/docker/Dockerfile
+    command: uvicorn src.api.server:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../data:/app/data
+      - ../models:/app/models
+      - ../logs:/app/logs
+    restart: unless-stopped
